@@ -17,6 +17,7 @@
   --bg:#0a0a0c;--surface:#111115;--card:#16161c;--border:#252530;
   --accent:#ff4d2e;--gold:#ffb800;--cyan:#00e5ff;--green:#39ff14;
   --purple:#c084fc;--text:#f0f0f8;--muted:#5a5a70;--dim:#2a2a38;
+  --blue:#3b82f6;
 }
 html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;overflow:hidden}
 #app{height:100vh;display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:relative;overflow:hidden}
@@ -28,6 +29,13 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Barlow
 .tab-pill{display:flex;background:var(--surface);border-radius:20px;padding:3px;gap:2px}
 .tab-pill button{border:none;background:transparent;color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:600;letter-spacing:1px;padding:5px 14px;border-radius:16px;cursor:pointer;transition:all .2s}
 .tab-pill button.active{background:var(--accent);color:#fff}
+.sync-status{display:flex;align-items:center;gap:5px;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;padding:5px 10px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface);color:var(--muted);transition:all .2s}
+.sync-status.synced{border-color:var(--green);color:var(--green)}
+.sync-status.syncing{border-color:var(--cyan);color:var(--cyan)}
+.sync-status.error{border-color:var(--accent);color:var(--accent)}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+.sync-dot.pulse{animation:pulse 1s ease infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 
 /* SCREENS */
 .screen{display:none;flex:1;overflow-y:auto;padding:14px 14px 90px}
@@ -67,20 +75,34 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Barlow
 .input-field:focus{border-color:var(--accent)}
 .input-field::placeholder{color:var(--muted)}
 .divider{height:1px;background:var(--border);margin:12px 0}
-.sex-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:11px;margin-bottom:9px}
+
+/* SESSION EXERCISE CARD */
+.sex-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:11px;margin-bottom:9px;position:relative}
+.sex-card.superset-member{border-left:3px solid var(--purple);margin-bottom:3px;border-radius:12px 12px 0 0}
+.sex-card.superset-member:last-of-type,.sex-card.superset-last{border-radius:0 0 12px 12px;margin-bottom:9px}
+.superset-label{background:rgba(192,132,252,.15);border:1px solid rgba(192,132,252,.3);border-radius:8px;padding:3px 10px;font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:2px;color:var(--purple);text-transform:uppercase;display:inline-flex;align-items:center;gap:5px;margin-bottom:6px}
+.superset-connector{height:2px;background:linear-gradient(90deg,transparent,var(--purple),transparent);margin:0 20px;position:relative;z-index:1}
 .sex-header{display:flex;align-items:center;gap:8px;margin-bottom:9px}
 .sex-emoji{font-size:21px}
 .sex-name-input{flex:1;background:transparent;border:none;border-bottom:1px solid var(--dim);color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;padding:2px 4px;outline:none}
 .sex-name-input:focus{border-bottom-color:var(--accent)}
 .del-btn{background:transparent;border:none;color:var(--muted);font-size:17px;cursor:pointer;padding:4px}
+.sex-actions{display:flex;gap:5px;margin-bottom:8px;flex-wrap:wrap}
+.sex-action-btn{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:1px;padding:4px 10px;border-radius:8px;cursor:pointer;border:1.5px solid var(--border);background:transparent;color:var(--muted);transition:all .2s}
+.sex-action-btn.active-bw{border-color:var(--green);color:var(--green);background:rgba(57,255,20,.08)}
+.sex-action-btn.superset-btn{border-color:var(--purple);color:var(--purple)}
 .sets-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
-.set-box{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px}
+.set-box{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px;position:relative;transition:all .2s}
+.set-box.completed{border-color:var(--green);background:rgba(57,255,20,.05)}
+.set-box.completed::after{content:'✓';position:absolute;top:4px;right:6px;font-size:10px;color:var(--green);font-weight:700}
 .set-lbl{font-size:9px;color:var(--muted);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px}
 .set-inputs{display:flex;gap:4px}
 .mini-wrap{flex:1}
 .mini-input{background:var(--dim);border:none;color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:600;width:100%;border-radius:6px;padding:5px 4px;outline:none;text-align:center}
 .mini-input:focus{background:#2e2e40}
+.mini-input:disabled{opacity:.5;cursor:not-allowed}
 .mini-lbl{font-size:9px;color:var(--muted);text-align:center;margin-top:2px}
+.bw-display{background:var(--dim);border-radius:6px;padding:5px 4px;text-align:center;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:var(--green);letter-spacing:.5px}
 .ghost-row{font-size:10px;color:var(--cyan);margin-top:3px;text-align:center;letter-spacing:.5px}
 .sets-ctrl{display:flex;gap:8px;margin-top:7px}
 .sets-ctrl-btn{background:var(--dim);border:none;color:var(--text);font-size:14px;border-radius:8px;padding:6px 14px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-weight:700}
@@ -95,6 +117,19 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Barlow
 .template-chip{flex-shrink:0;background:var(--card);border:1.5px solid var(--gold);color:var(--gold);font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;padding:6px 14px;border-radius:20px;cursor:pointer;display:flex;align-items:center;gap:6px}
 .template-chip-del{color:var(--muted);font-size:14px;cursor:pointer}
 
+/* AUTO-REST BANNER */
+.auto-rest-banner{background:rgba(0,229,255,.08);border:1.5px solid var(--cyan);border-radius:10px;padding:9px 13px;margin-top:8px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.auto-rest-banner-left{display:flex;align-items:center;gap:8px}
+.auto-rest-banner-icon{font-size:18px}
+.auto-rest-banner-text{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;color:var(--cyan)}
+.auto-rest-banner-sub{font-size:10px;color:var(--muted);margin-top:1px}
+.toggle-switch{position:relative;width:38px;height:20px;flex-shrink:0}
+.toggle-switch input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;inset:0;background:var(--dim);border-radius:10px;cursor:pointer;transition:.3s}
+.toggle-slider:before{content:'';position:absolute;width:14px;height:14px;left:3px;top:3px;background:var(--muted);border-radius:50%;transition:.3s}
+.toggle-switch input:checked+.toggle-slider{background:rgba(0,229,255,.3);border:1px solid var(--cyan)}
+.toggle-switch input:checked+.toggle-slider:before{transform:translateX(18px);background:var(--cyan)}
+
 /* TIMER */
 .timer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:500;display:none;flex-direction:column;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
 .timer-overlay.show{display:flex}
@@ -102,12 +137,14 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Barlow
 .timer-ring svg{position:absolute;inset:0;transform:rotate(-90deg)}
 .timer-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',cursive;font-size:68px;color:var(--cyan);letter-spacing:4px}
 .timer-lbl{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-bottom:18px}
+.timer-auto-label{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;color:var(--purple);background:rgba(192,132,252,.1);border:1px solid rgba(192,132,252,.3);border-radius:20px;padding:4px 12px;margin-bottom:12px}
 .timer-durs{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
 .timer-dur-btn{background:var(--dim);border:none;color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;padding:8px 14px;border-radius:8px;cursor:pointer}
 .timer-dur-btn.active{background:var(--cyan);color:#000}
 .timer-btns{display:flex;gap:10px;margin-top:22px}
 .timer-btn{border:2px solid var(--border);background:var(--surface);color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;padding:11px 22px;border-radius:12px;cursor:pointer}
 .timer-btn.primary{background:var(--cyan);border-color:var(--cyan);color:#000}
+.timer-set-complete-btn{background:rgba(57,255,20,.1);border:1.5px solid var(--green);color:var(--green);font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;padding:11px 22px;border-radius:12px;cursor:pointer}
 
 /* PROGRESS */
 .prog-section{margin-bottom:20px}
@@ -135,6 +172,7 @@ canvas.mini-chart{width:100%;height:100px}
 .hist-date{font-size:12px;color:var(--muted);margin-top:2px}
 .hist-badge{font-size:10px;font-weight:700;letter-spacing:1.5px;padding:4px 10px;border-radius:20px;background:rgba(255,184,0,.12);color:var(--gold)}
 .hist-share-btn{background:var(--accent);border:none;color:#fff;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:1px;padding:5px 12px;border-radius:20px;cursor:pointer;margin-top:5px;display:block}
+.hist-del-btn{background:transparent;border:1px solid var(--border);color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:1px;padding:5px 12px;border-radius:20px;cursor:pointer;margin-top:5px;display:block}
 .hist-photo{width:100%;border-radius:10px;margin-bottom:10px;max-height:200px;object-fit:cover}
 .compare-row{display:flex;gap:7px}
 .compare-block{flex:1;background:var(--surface);border-radius:10px;padding:9px 11px}
@@ -151,7 +189,6 @@ canvas.mini-chart{width:100%;height:100px}
 .rank-avatar{width:52px;height:52px;border-radius:50%;background:var(--dim);border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
 .rank-athlete-name{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700}
 .rank-title{font-size:12px;color:var(--accent);font-weight:700;letter-spacing:2px;text-transform:uppercase}
-.rank-badge{font-family:'Bebas Neue',cursive;font-size:28px;letter-spacing:2px}
 .xp-bar-wrap{margin-top:12px}
 .xp-bar-label{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:5px}
 .xp-bar-track{height:8px;background:var(--dim);border-radius:4px;overflow:hidden}
@@ -173,6 +210,25 @@ canvas.mini-chart{width:100%;height:100px}
 .streak-dot.empty{background:var(--dim);color:var(--muted)}
 .profile-name-input{width:100%;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;padding:10px 13px;outline:none;margin-bottom:10px}
 .profile-name-input:focus{border-color:var(--accent)}
+
+/* SUPABASE SYNC MODAL */
+.sync-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:650;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(6px)}
+.sync-modal-overlay.show{display:flex}
+.sync-modal-sheet{background:var(--surface);border:1px solid var(--border);border-radius:24px 24px 0 0;width:100%;max-width:430px;padding:22px 18px 36px;animation:slideUp .3s ease}
+.sync-field-label{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:6px;margin-top:14px}
+.sync-input{width:100%;background:var(--card);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-family:'Barlow',sans-serif;font-size:13px;padding:10px 13px;outline:none}
+.sync-input:focus{border-color:var(--blue)}
+.sync-input::placeholder{color:var(--muted)}
+.sync-btn{width:100%;background:var(--blue);border:none;color:#fff;font-family:'Bebas Neue',cursive;font-size:18px;letter-spacing:2px;padding:14px;border-radius:12px;cursor:pointer;margin-top:16px}
+.sync-btn:disabled{opacity:.5;cursor:not-allowed}
+.sync-secondary-btn{width:100%;background:transparent;border:1.5px solid var(--border);color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;padding:11px;border-radius:12px;cursor:pointer;margin-top:8px}
+.sync-info{font-size:11px;color:var(--muted);line-height:1.6;margin-top:10px;padding:10px;background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.15);border-radius:8px}
+.sync-info a{color:var(--blue)}
+.sync-status-row{display:flex;align-items:center;gap:8px;padding:10px;background:var(--card);border-radius:10px;margin-top:10px}
+.sync-status-icon{font-size:20px}
+.sync-status-text{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700}
+.sync-status-sub{font-size:11px;color:var(--muted)}
+.sync-danger-btn{width:100%;background:transparent;border:1.5px solid rgba(255,77,46,.3);color:var(--accent);font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;padding:10px;border-radius:10px;cursor:pointer;margin-top:8px}
 
 /* SHARE MODAL */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:600;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(6px)}
@@ -227,6 +283,7 @@ canvas.mini-chart{width:100%;height:100px}
 .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--green);color:#000;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;padding:9px 20px;border-radius:30px;opacity:0;transition:all .3s;z-index:800;pointer-events:none;white-space:nowrap}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .new-pr-toast{background:var(--gold);color:#000}
+.toast-blue{background:var(--blue);color:#fff}
 </style>
 </head>
 <body>
@@ -263,7 +320,23 @@ canvas.mini-chart{width:100%;height:100px}
     <div id="sessionExercises"></div>
     <button class="add-custom-btn" onclick="addCustomExercise()">+ Add Custom Exercise</button>
     <button class="save-template-btn" onclick="saveTemplate()">💾 &nbsp;Save As Workout Template</button>
-    <button class="rest-timer-btn" onclick="showTimer()">⏱ &nbsp;Rest Timer</button>
+
+    <!-- AUTO-REST TOGGLE -->
+    <div class="auto-rest-banner">
+      <div class="auto-rest-banner-left">
+        <span class="auto-rest-banner-icon">⏱</span>
+        <div>
+          <div class="auto-rest-banner-text">Auto Rest Timer</div>
+          <div class="auto-rest-banner-sub">Starts automatically after each set</div>
+        </div>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" id="autoRestToggle" onchange="toggleAutoRest(this.checked)">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+
+    <button class="rest-timer-btn" onclick="showTimer(false)">⏱ &nbsp;Rest Timer</button>
     <button class="photo-btn" onclick="document.getElementById('photoInput').click()">📸 &nbsp;Add Post-Workout Photo</button>
     <input type="file" id="photoInput" accept="image/*" capture="environment" onchange="handlePhoto(event)">
     <img id="postPhotoPreview" class="post-photo-preview" alt="post workout photo">
@@ -328,6 +401,7 @@ canvas.mini-chart{width:100%;height:100px}
     <div class="timer-num" id="timerNum">1:00</div>
   </div>
   <div class="timer-lbl">Rest Timer</div>
+  <div id="timerAutoLabel" class="timer-auto-label" style="display:none">⚡ AUTO-TRIGGERED</div>
   <div class="timer-durs">
     <button class="timer-dur-btn" onclick="setDur(this,30)">30s</button>
     <button class="timer-dur-btn active" onclick="setDur(this,60)">60s</button>
@@ -364,6 +438,16 @@ canvas.mini-chart{width:100%;height:100px}
     <div class="levelup-title">LEVEL UP!</div>
     <div class="levelup-rank" id="levelupRank">You reached Iron I</div>
     <button class="levelup-btn" onclick="closeLevelUp()">LET'S GO 💪</button>
+  </div>
+</div>
+
+<!-- SUPABASE SYNC MODAL -->
+<div class="sync-modal-overlay" id="syncModal" onclick="if(event.target===this)closeSyncModal()">
+  <div class="sync-modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">☁️ Cloud Sync</div>
+    <div class="modal-sub">Back up & sync your data via Supabase</div>
+    <div id="syncModalBody"></div>
   </div>
 </div>
 
@@ -407,6 +491,8 @@ const EXERCISES=[
   {id:'c11',name:'Archer Push-Up',cat:'cali',muscle:'Chest · Triceps',emoji:'🤸',tip:'One arm extends fully while you press through the other.'},
   {id:'c12',name:'Bulgarian Split Squat',cat:'cali',muscle:'Quads · Glutes',emoji:'🤸',tip:'Keep front knee tracking over toes. Full depth.'},
 ];
+
+const CALI_IDS=new Set(['c1','c2','c3','c4','c5','c6','c7','c8','c9','c10','c11','c12','r1','r2','r3','r4','r5','r6','r7','r8']);
 
 const IMG={
   w1:'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&q=80',
@@ -485,6 +571,12 @@ let postPhotoData=null;
 let currentXP=parseInt(localStorage.getItem('forge_xp')||'0');
 let prevRank=getRank(currentXP);
 let toastTO=null;
+let autoRestEnabled=false;
+// Supabase config stored in localStorage
+let supabaseUrl=localStorage.getItem('forge_sb_url')||'';
+let supabaseKey=localStorage.getItem('forge_sb_key')||'';
+let supabaseUserId=localStorage.getItem('forge_sb_uid')||'';
+let syncState='idle'; // idle | syncing | synced | error
 
 function saveState(){
   localStorage.setItem('forge_v3',JSON.stringify(history));
@@ -506,7 +598,7 @@ function getNextRank(xp){
   return null;
 }
 function calcXPForWorkout(workout){
-  let xp=20; // base per workout
+  let xp=20;
   xp+=workout.exercises.length*5;
   xp+=workout.exercises.reduce((a,e)=>a+e.sets.length,0)*2;
   return xp;
@@ -519,12 +611,15 @@ function navTo(name){
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('nav-'+name).classList.add('active');
   showScreen(name);
-  const tabs=document.querySelectorAll('#mainTabs button');
-  tabs[0].classList.toggle('active',name==='browse');
-  tabs[1].classList.toggle('active',name==='build');
+  const isBrowseBuild=name==='browse'||name==='build';
   const hr=document.getElementById('headerRight');
-  hr.innerHTML=(name==='browse'||name==='build')?
-    `<div class="tab-pill" id="mainTabs"><button class="${name==='browse'?'active':''}" onclick="showScreen('browse')">Browse</button><button class="${name==='build'?'active':''}" onclick="showScreen('build')">Build</button></div>`:'';
+  if(isBrowseBuild){
+    hr.innerHTML=`<div class="tab-pill" id="mainTabs"><button class="${name==='browse'?'active':''}" onclick="showScreen('browse')">Browse</button><button class="${name==='build'?'active':''}" onclick="showScreen('build')">Build</button></div>`;
+  } else if(name==='profile'){
+    hr.innerHTML=`<div class="sync-status ${syncState}" id="syncBtn" onclick="openSyncModal()"><span class="sync-dot ${syncState==='syncing'?'pulse':''}"></span>${syncState==='synced'?'Synced':syncState==='syncing'?'Syncing...':syncState==='error'?'Sync Error':'Sync'}</div>`;
+  } else {
+    hr.innerHTML='';
+  }
 }
 function showScreen(name){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
@@ -579,18 +674,71 @@ function getLastSessionData(exName){
 function addToSession(id,e){
   e&&e.stopPropagation();
   const ex=EXERCISES.find(x=>x.id===id);
-  session.push({uid:Date.now()+'_'+id,name:ex.name,cat:ex.cat,emoji:ex.emoji,exId:id,sets:[{reps:'',weight:''}]});
+  const isCali=CALI_IDS.has(id);
+  session.push({
+    uid:Date.now()+'_'+id,
+    name:ex.name,cat:ex.cat,emoji:ex.emoji,exId:id,
+    sets:[{reps:'',weight:'',done:false}],
+    bodyweight:isCali, // default BW for cali/rings
+    supersetWith:null,
+  });
   renderSession();navTo('build');showToast(ex.name+' added!');
 }
 function addCustomExercise(){
-  session.push({uid:Date.now()+'_c',name:'Custom Exercise',cat:'weight',emoji:'💪',exId:null,sets:[{reps:'',weight:''}]});
+  session.push({uid:Date.now()+'_c',name:'Custom Exercise',cat:'weight',emoji:'💪',exId:null,sets:[{reps:'',weight:'',done:false}],bodyweight:false,supersetWith:null});
   renderSession();
 }
 function removeEx(uid){session=session.filter(e=>e.uid!==uid);renderSession();}
 function updateExName(uid,val){const e=session.find(x=>x.uid===uid);if(e)e.name=val;}
-function updateSet(uid,si,field,val){const e=session.find(x=>x.uid===uid);if(e)e.sets[si][field]=val;}
-function addSet(uid){const e=session.find(x=>x.uid===uid);if(e){e.sets.push({reps:'',weight:''});renderSession();}}
+function updateSet(uid,si,field,val){const e=session.find(x=>x.uid===uid);if(e&&e.sets[si])e.sets[si][field]=val;}
+function addSet(uid){const e=session.find(x=>x.uid===uid);if(e){e.sets.push({reps:'',weight:'',done:false});renderSession();}}
 function removeSet(uid){const e=session.find(x=>x.uid===uid);if(e&&e.sets.length>1){e.sets.pop();renderSession();}}
+
+// ── BODYWEIGHT TOGGLE ──
+function toggleBodyweight(uid){
+  const ex=session.find(x=>x.uid===uid);
+  if(!ex)return;
+  ex.bodyweight=!ex.bodyweight;
+  renderSession();
+}
+
+// ── SUPERSET ──
+function toggleSuperset(uid){
+  const idx=session.findIndex(x=>x.uid===uid);
+  if(idx===-1)return;
+  const ex=session[idx];
+  // If already in a superset, remove it
+  if(ex.supersetWith){
+    const partner=session.find(x=>x.uid===ex.supersetWith);
+    if(partner)partner.supersetWith=null;
+    ex.supersetWith=null;
+    renderSession();showToast('Superset removed');return;
+  }
+  // Find the next exercise to pair with
+  const next=session[idx+1];
+  if(!next){showToast('Add another exercise below to superset');return;}
+  if(next.supersetWith){showToast('Next exercise is already in a superset');return;}
+  ex.supersetWith=next.uid;
+  next.supersetWith=ex.uid;
+  renderSession();showToast('⚡ Superset created!');
+}
+
+// ── MARK SET DONE (triggers auto rest) ──
+function markSetDone(uid,si){
+  const ex=session.find(x=>x.uid===uid);
+  if(!ex||!ex.sets[si])return;
+  ex.sets[si].done=!ex.sets[si].done;
+  renderSession();
+  if(ex.sets[si].done&&autoRestEnabled){
+    showTimer(true);
+  }
+}
+
+// ── AUTO REST TOGGLE ──
+function toggleAutoRest(val){
+  autoRestEnabled=val;
+  localStorage.setItem('forge_autorest',val?'1':'0');
+}
 
 function renderSession(){
   const el=document.getElementById('sessionExercises');
@@ -598,40 +746,79 @@ function renderSession(){
     el.innerHTML=`<div class="empty-state"><div class="empty-icon">💪</div><div class="empty-txt">Browse exercises and tap + to add</div></div>`;
     return;
   }
-  el.innerHTML=session.map(ex=>{
+
+  let html='';
+  const rendered=new Set();
+
+  session.forEach((ex,idx)=>{
+    if(rendered.has(ex.uid))return;
     const last=getLastSessionData(ex.name);
-    return `<div class="sex-card" id="sec-${ex.uid}">
-      <div class="sex-header">
-        <span class="sex-emoji">${ex.emoji}</span>
-        <input class="sex-name-input" value="${ex.name}" onchange="updateExName('${ex.uid}',this.value)"/>
-        <button class="del-btn" onclick="removeEx('${ex.uid}')">✕</button>
-      </div>
-      ${last?`<div style="font-size:10px;color:var(--cyan);margin-bottom:7px;letter-spacing:.5px">👻 Last time: ${last.sets.map((s,i)=>`Set ${i+1}: ${s.reps||'?'}rep${s.weight?' @ '+s.weight+'lb':''}`).join(' · ')}</div>`:''}
-      <div class="sets-grid">
-        ${ex.sets.map((s,si)=>{
-          const ghostSet=last&&last.sets[si];
-          return `<div class="set-box">
-            <div class="set-lbl">Set ${si+1}</div>
-            <div class="set-inputs">
-              <div class="mini-wrap">
-                <input class="mini-input" type="number" inputmode="numeric" placeholder="—" value="${s.reps}" oninput="updateSet('${ex.uid}',${si},'reps',this.value)">
-                <div class="mini-lbl">Reps</div>
+    const isInSuperset=!!ex.supersetWith;
+    const partnerIdx=isInSuperset?session.findIndex(x=>x.uid===ex.supersetWith):-1;
+    const isFirstOfPair=isInSuperset&&partnerIdx>idx;
+    const isSecondOfPair=isInSuperset&&partnerIdx<idx;
+
+    const renderCard=(exObj,extraClass='')=>{
+      const lastEx=getLastSessionData(exObj.name);
+      return `<div class="sex-card${extraClass?' '+extraClass:''}" id="sec-${exObj.uid}">
+        ${isFirstOfPair||isSecondOfPair?`<div class="superset-label">⚡ Superset</div>`:''}
+        <div class="sex-header">
+          <span class="sex-emoji">${exObj.emoji}</span>
+          <input class="sex-name-input" value="${exObj.name}" onchange="updateExName('${exObj.uid}',this.value)"/>
+          <button class="del-btn" onclick="removeEx('${exObj.uid}')">✕</button>
+        </div>
+        <div class="sex-actions">
+          <button class="sex-action-btn ${exObj.bodyweight?'active-bw':''}" onclick="toggleBodyweight('${exObj.uid}')">
+            ${exObj.bodyweight?'✓ Bodyweight':'BW'}
+          </button>
+          <button class="sex-action-btn superset-btn" onclick="toggleSuperset('${exObj.uid}')">
+            ${exObj.supersetWith?'✕ Superset':'⚡ Superset'}
+          </button>
+        </div>
+        ${lastEx?`<div style="font-size:10px;color:var(--cyan);margin-bottom:7px;letter-spacing:.5px">👻 Last time: ${lastEx.sets.map((s,i)=>`Set ${i+1}: ${s.reps||'?'}rep${s.weight?' @ '+s.weight+'lb':''}`).join(' · ')}</div>`:''}
+        <div class="sets-grid">
+          ${exObj.sets.map((s,si)=>{
+            const ghostSet=lastEx&&lastEx.sets[si];
+            return `<div class="set-box${s.done?' completed':''}" onclick="markSetDone('${exObj.uid}',${si})">
+              <div class="set-lbl">Set ${si+1}</div>
+              <div class="set-inputs" onclick="event.stopPropagation()">
+                <div class="mini-wrap">
+                  <input class="mini-input" type="number" inputmode="numeric" placeholder="—" value="${s.reps}" oninput="updateSet('${exObj.uid}',${si},'reps',this.value)">
+                  <div class="mini-lbl">Reps</div>
+                </div>
+                ${exObj.bodyweight
+                  ?`<div class="mini-wrap"><div class="bw-display">BW</div><div class="mini-lbl">Weight</div></div>`
+                  :`<div class="mini-wrap">
+                    <input class="mini-input" type="number" inputmode="decimal" placeholder="—" value="${s.weight}" oninput="updateSet('${exObj.uid}',${si},'weight',this.value)">
+                    <div class="mini-lbl">lbs</div>
+                  </div>`
+                }
               </div>
-              <div class="mini-wrap">
-                <input class="mini-input" type="number" inputmode="decimal" placeholder="—" value="${s.weight}" oninput="updateSet('${ex.uid}',${si},'weight',this.value)">
-                <div class="mini-lbl">lbs</div>
-              </div>
-            </div>
-            ${ghostSet?`<div class="ghost-row">Last: ${ghostSet.reps||'?'}r${ghostSet.weight?' · '+ghostSet.weight+'lb':''}</div>`:''}
-          </div>`;
-        }).join('')}
-      </div>
-      <div class="sets-ctrl">
-        <button class="sets-ctrl-btn" onclick="addSet('${ex.uid}')">+ Set</button>
-        ${ex.sets.length>1?`<button class="sets-ctrl-btn" onclick="removeSet('${ex.uid}')">− Set</button>`:''}
-      </div>
-    </div>`;
-  }).join('');
+              ${ghostSet?`<div class="ghost-row">Last: ${ghostSet.reps||'?'}r${ghostSet.weight?' · '+ghostSet.weight+'lb':''}</div>`:''}
+            </div>`;
+          }).join('')}
+        </div>
+        <div class="sets-ctrl">
+          <button class="sets-ctrl-btn" onclick="addSet('${exObj.uid}')">+ Set</button>
+          ${exObj.sets.length>1?`<button class="sets-ctrl-btn" onclick="removeSet('${exObj.uid}')">− Set</button>`:''}
+        </div>
+      </div>`;
+    };
+
+    if(isFirstOfPair){
+      const partner=session[partnerIdx];
+      html+=renderCard(ex,'superset-member');
+      html+=`<div class="superset-connector"></div>`;
+      html+=renderCard(partner,'superset-member superset-last');
+      rendered.add(ex.uid);
+      rendered.add(partner.uid);
+    } else if(!isSecondOfPair){
+      html+=renderCard(ex);
+      rendered.add(ex.uid);
+    }
+  });
+
+  el.innerHTML=html;
   renderTemplates();
 }
 
@@ -648,7 +835,7 @@ function saveTemplate(){
 }
 function loadTemplate(idx){
   const t=templates[idx];
-  session=JSON.parse(JSON.stringify(t.exercises)).map(e=>({...e,uid:Date.now()+'_'+Math.random(),sets:e.sets.map(s=>({...s}))}));
+  session=JSON.parse(JSON.stringify(t.exercises)).map(e=>({...e,uid:Date.now()+'_'+Math.random(),sets:e.sets.map(s=>({...s,done:false}))}));
   document.getElementById('workoutName').value=t.name;
   renderSession();showToast(t.name+' loaded!');
 }
@@ -689,25 +876,23 @@ function finishWorkout(){
   if(!session.length){showToast('Add at least one exercise!');return;}
   const name=(document.getElementById('workoutName').value.trim())||'Untitled Workout';
 
-  // Check PRs
   const newPRs=[];
   session.forEach(ex=>{
     ex.sets.forEach(s=>{
       const reps=parseInt(s.reps)||0;
-      const weight=parseFloat(s.weight)||0;
+      const weight=ex.bodyweight?0:parseFloat(s.weight)||0;
       if(!reps)return;
       const key=ex.name;
       const existing=prs[key];
       const vol=reps*(weight||1);
       const existingVol=existing?(existing.reps*(existing.weight||1)):0;
       if(vol>existingVol){
-        prs[key]={reps,weight,date:new Date().toLocaleDateString()};
+        prs[key]={reps,weight,date:new Date().toLocaleDateString(),bodyweight:ex.bodyweight};
         newPRs.push(ex.name);
       }
     });
   });
 
-  // XP
   const earnedXP=calcXPForWorkout({exercises:session});
   const oldRank=getRank(currentXP);
   currentXP+=earnedXP;
@@ -726,7 +911,11 @@ function finishWorkout(){
   if(history.length>100)history.pop();
   saveState();
 
-  // Reset
+  // Auto-sync if configured
+  if(supabaseUrl&&supabaseKey&&supabaseUserId){
+    syncToSupabase();
+  }
+
   lastWorkout=record;
   session=[];postPhotoData=null;
   document.getElementById('workoutName').value='';
@@ -734,7 +923,6 @@ function finishWorkout(){
   document.getElementById('photoInput').value='';
   renderSession();
 
-  // Notifications
   if(newPRs.length)showToast('🏆 New PR! '+newPRs[0],true);
   if(newRank.name!==oldRank.name){
     setTimeout(()=>showLevelUp(newRank),1000);
@@ -744,11 +932,27 @@ function finishWorkout(){
 }
 
 // ═══════════════════════════════════════════
-// TIMER
+// TIMER — WITH AUTO-REST SUPPORT
 // ═══════════════════════════════════════════
 const CIRC=2*Math.PI*96;
-function showTimer(){document.getElementById('timerOverlay').classList.add('show');updateTimerUI();}
-function closeTimer(){document.getElementById('timerOverlay').classList.remove('show');}
+function showTimer(isAuto=false){
+  document.getElementById('timerOverlay').classList.add('show');
+  document.getElementById('timerAutoLabel').style.display=isAuto?'block':'none';
+  if(isAuto){
+    // Auto-start
+    if(!timerRunning){
+      timerRem=timerDur;
+      updateTimerUI();
+      startTimerCountdown();
+    }
+  } else {
+    updateTimerUI();
+  }
+}
+function closeTimer(){
+  document.getElementById('timerOverlay').classList.remove('show');
+  document.getElementById('timerAutoLabel').style.display='none';
+}
 function setDur(btn,sec){
   document.querySelectorAll('.timer-dur-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
@@ -756,20 +960,30 @@ function setDur(btn,sec){
   document.getElementById('timerToggleBtn').textContent='Start';
   timerDur=sec;timerRem=sec;updateTimerUI();
 }
-function toggleTimer(){
-  if(timerRunning){clearInterval(timerInterval);timerRunning=false;document.getElementById('timerToggleBtn').textContent='Resume';}
-  else{
-    if(timerRem<=0)timerRem=timerDur;
-    timerRunning=true;document.getElementById('timerToggleBtn').textContent='Pause';
-    timerInterval=setInterval(()=>{
-      timerRem--;updateTimerUI();
-      if(timerRem<=0){
-        clearInterval(timerInterval);timerRunning=false;
-        document.getElementById('timerToggleBtn').textContent='Start';
-        navigator.vibrate&&navigator.vibrate([200,100,200,100,400]);
-        showToast('⏱ Rest Over — GO!');
+function startTimerCountdown(){
+  if(timerRem<=0)timerRem=timerDur;
+  timerRunning=true;
+  document.getElementById('timerToggleBtn').textContent='Pause';
+  timerInterval=setInterval(()=>{
+    timerRem--;updateTimerUI();
+    if(timerRem<=0){
+      clearInterval(timerInterval);timerRunning=false;
+      document.getElementById('timerToggleBtn').textContent='Start';
+      navigator.vibrate&&navigator.vibrate([200,100,200,100,400]);
+      showToast('⏱ Rest Over — GO!');
+      // Auto close after 1.5s if auto-triggered
+      if(document.getElementById('timerAutoLabel').style.display!=='none'){
+        setTimeout(closeTimer,1500);
       }
-    },1000);
+    }
+  },1000);
+}
+function toggleTimer(){
+  if(timerRunning){
+    clearInterval(timerInterval);timerRunning=false;
+    document.getElementById('timerToggleBtn').textContent='Resume';
+  } else {
+    startTimerCountdown();
   }
 }
 function resetTimer(){clearInterval(timerInterval);timerRunning=false;timerRem=timerDur;document.getElementById('timerToggleBtn').textContent='Start';updateTimerUI();}
@@ -783,7 +997,6 @@ function updateTimerUI(){
 // PROGRESS
 // ═══════════════════════════════════════════
 function renderProgress(){
-  // PRs
   const prList=document.getElementById('prList');
   const prKeys=Object.keys(prs);
   if(!prKeys.length){
@@ -793,19 +1006,16 @@ function renderProgress(){
       <div class="pr-card">
         <div><div class="pr-ex-name">${k}</div><div class="pr-ex-muscle">${prs[k].date}</div></div>
         <div class="pr-val">
-          <div class="pr-num">${prs[k].weight?prs[k].weight+'<span style="font-size:14px">lb</span> · ':''}</div>
+          <div class="pr-num">${prs[k].bodyweight?'BW':prs[k].weight?prs[k].weight+'<span style="font-size:14px">lb</span>':''}</div>
           <div class="pr-num">${prs[k].reps}<span style="font-size:14px">rep</span></div>
         </div>
       </div>`).join('');
   }
 
-  // Exercise chart select
   const sel=document.getElementById('chartExSelect');
   const allExNames=[...new Set(history.flatMap(w=>w.exercises.map(e=>e.name)))];
   sel.innerHTML=allExNames.length?allExNames.map(n=>`<option value="${n}">${n}</option>`).join(''):'<option>No data yet</option>';
   renderExChart();
-
-  // Monthly volume bars
   renderVolBars();
 }
 
@@ -833,7 +1043,7 @@ function renderExChart(){
   }
 
   const W=canvas.width,H=canvas.height,pad=30;
-  const maxW=Math.max(...points.map(p=>p.weight))||1;
+  const maxW=Math.max(...points.map(p=>p.weight),1);
   const drawLine=(data,color)=>{
     ctx.beginPath();ctx.strokeStyle=color;ctx.lineWidth=3;ctx.lineJoin='round';
     data.forEach((v,i)=>{
@@ -848,8 +1058,7 @@ function renderExChart(){
   drawLine(points.map(p=>p.weight),'#ff4d2e');
   if(points.some(p=>p.reps>0))drawLine(points.map(p=>p.reps),'#00e5ff');
 
-  ctx.fillStyle='#5a5a70';ctx.font='20px Barlow';ctx.textAlign='left';
-  ctx.fillStyle='#ff4d2e';ctx.fillRect(pad,H-20,20,4);ctx.fillStyle='#5a5a70';ctx.fillText('Weight',pad+25,H-14);
+  ctx.fillStyle='#ff4d2e';ctx.fillRect(pad,H-20,20,4);ctx.fillStyle='#5a5a70';ctx.font='20px Barlow';ctx.fillText('Weight',pad+25,H-14);
   ctx.fillStyle='#00e5ff';ctx.fillRect(120,H-20,20,4);ctx.fillStyle='#5a5a70';ctx.fillText('Reps',145,H-14);
 }
 
@@ -860,12 +1069,10 @@ function renderVolBars(){
     const d=new Date(now.getFullYear(),now.getMonth()-i,1);
     months.push({label:d.toLocaleDateString('en-US',{month:'short'}),year:d.getFullYear(),month:d.getMonth()});
   }
-  const vols=months.map(m=>{
-    return history.filter(w=>{
-      const d=new Date(w.timestamp);
-      return d.getFullYear()===m.year&&d.getMonth()===m.month;
-    }).reduce((sum,w)=>sum+w.exercises.reduce((a,e)=>a+e.sets.length,0),0);
-  });
+  const vols=months.map(m=>
+    history.filter(w=>{const d=new Date(w.timestamp);return d.getFullYear()===m.year&&d.getMonth()===m.month;})
+      .reduce((sum,w)=>sum+w.exercises.reduce((a,e)=>a+e.sets.length,0),0)
+  );
   const maxVol=Math.max(...vols,1);
   document.getElementById('volBars').innerHTML=vols.map((v,i)=>`
     <div class="vol-bar-wrap">
@@ -877,6 +1084,13 @@ function renderVolBars(){
 // ═══════════════════════════════════════════
 // HISTORY
 // ═══════════════════════════════════════════
+function deleteWorkout(i){
+  if(!confirm('Delete this workout?'))return;
+  history.splice(i,1);
+  saveState();
+  renderHistory();
+  showToast('Workout deleted');
+}
 function renderHistory(){
   const el=document.getElementById('historyList');
   if(!history.length){
@@ -895,6 +1109,7 @@ function renderHistory(){
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
           <span class="hist-badge">${w.exercises.length} exercises</span>
           <button class="hist-share-btn" onclick="showShareModal(history[${i}])">Share 📤</button>
+          <button class="hist-del-btn" onclick="deleteWorkout(${i})">Delete 🗑</button>
         </div>
       </div>
       ${w.photo?`<img class="hist-photo" src="${w.photo}" alt="post workout">`:''}
@@ -903,12 +1118,11 @@ function renderHistory(){
           <div class="compare-block-lbl">This Session</div>
           ${w.exercises.map(e=>{
             const prevEx=prev.exercises.find(pe=>pe.name===e.name);
-            const currSets=e.sets.length;
             const currVol=e.sets.reduce((a,s)=>(parseInt(s.reps)||0)*(parseFloat(s.weight)||1)+a,0);
             const prevVol=prevEx?prevEx.sets.reduce((a,s)=>(parseInt(s.reps)||0)*(parseFloat(s.weight)||1)+a,0):0;
             const better=prevEx&&currVol>prevVol;
             const worse=prevEx&&currVol<prevVol;
-            return `<div class="compare-ex ${better?'better':worse?'worse':''}">${e.emoji} ${e.name} <span class="val">· ${currSets} sets</span></div>`;
+            return `<div class="compare-ex ${better?'better':worse?'worse':''}">${e.emoji} ${e.name} <span class="val">· ${e.sets.length} sets</span></div>`;
           }).join('')}
         </div>
         <div class="compare-block">
@@ -923,18 +1137,13 @@ function renderHistory(){
 // ═══════════════════════════════════════════
 // PROFILE
 // ═══════════════════════════════════════════
-function saveAthleteName(){
-  localStorage.setItem('forge_name',document.getElementById('athleteName').value);
-}
+function saveAthleteName(){localStorage.setItem('forge_name',document.getElementById('athleteName').value);}
 function calcStreak(){
   if(!history.length)return 0;
   const today=new Date();today.setHours(0,0,0,0);
   let streak=0,check=new Date(today);
   while(true){
-    const found=history.some(w=>{
-      const d=new Date(w.timestamp);d.setHours(0,0,0,0);
-      return d.getTime()===check.getTime();
-    });
+    const found=history.some(w=>{const d=new Date(w.timestamp);d.setHours(0,0,0,0);return d.getTime()===check.getTime();});
     if(!found)break;
     streak++;check.setDate(check.getDate()-1);
   }
@@ -943,20 +1152,15 @@ function calcStreak(){
 function renderProfile(){
   const name=localStorage.getItem('forge_name')||'';
   document.getElementById('athleteName').value=name;
-
   const rank=getRank(currentXP);
   const next=getNextRank(currentXP);
   const xpInRank=currentXP-rank.minXP;
   const xpToNext=next?(next.minXP-rank.minXP):100;
   const pct=next?Math.min(100,Math.round((xpInRank/xpToNext)*100)):100;
-
   document.getElementById('rankCard').innerHTML=`
     <div class="rank-name-row">
       <div class="rank-avatar">${rank.emoji}</div>
-      <div>
-        <div class="rank-athlete-name">${name||'Athlete'}</div>
-        <div class="rank-title">${rank.name}</div>
-      </div>
+      <div><div class="rank-athlete-name">${name||'Athlete'}</div><div class="rank-title">${rank.name}</div></div>
       <div style="margin-left:auto;text-align:right">
         <div style="font-family:'Bebas Neue',cursive;font-size:22px;color:var(--gold)">${currentXP} XP</div>
         <div style="font-size:10px;color:var(--muted)">${next?`${next.minXP-currentXP} to ${next.name}`:'MAX RANK'}</div>
@@ -967,22 +1171,17 @@ function renderProfile(){
       <div class="xp-bar-track"><div class="xp-bar-fill" style="width:${pct}%"></div></div>
     </div>`;
 
-  // Stats
   const totalWorkouts=history.length;
   const totalSets=history.reduce((a,w)=>a+w.exercises.reduce((b,e)=>b+e.sets.length,0),0);
   const totalReps=history.reduce((a,w)=>a+w.exercises.reduce((b,e)=>b+e.sets.reduce((c,s)=>c+(parseInt(s.reps)||0),0),0),0);
   const totalWeight=history.reduce((a,w)=>a+w.exercises.reduce((b,e)=>b+e.sets.reduce((c,s)=>c+(parseInt(s.reps)||0)*(parseFloat(s.weight)||0),0),0),0);
   const streak=calcStreak();
   document.getElementById('statsGrid').innerHTML=[
-    [totalWorkouts,'Total Workouts'],
-    [totalSets,'Total Sets'],
-    [totalReps,'Total Reps'],
-    [Math.round(totalWeight).toLocaleString()+'lb','Total Volume'],
-    [streak,'Day Streak 🔥'],
-    [Object.keys(prs).length,'Personal Records'],
+    [totalWorkouts,'Total Workouts'],[totalSets,'Total Sets'],
+    [totalReps,'Total Reps'],[Math.round(totalWeight).toLocaleString()+'lb','Total Volume'],
+    [streak,'Day Streak 🔥'],[Object.keys(prs).length,'Personal Records'],
   ].map(([n,l])=>`<div class="stat-card"><div class="stat-num">${n}</div><div class="stat-lbl">${l}</div></div>`).join('');
 
-  // Streak calendar (last 28 days)
   const today2=new Date();today2.setHours(0,0,0,0);
   const streakDots=[];
   for(let i=27;i>=0;i--){
@@ -992,16 +1191,185 @@ function renderProfile(){
     streakDots.push(`<div class="streak-dot ${isToday?'today':worked?'active':'empty'}">${d.getDate()}</div>`);
   }
   document.getElementById('streakRow').innerHTML=streakDots.join('');
-
-  // Badges
   document.getElementById('badgesGrid').innerHTML=ALL_BADGES.map(b=>{
     const earned=b.check(history,streak,prs);
-    return `<div class="badge-item ${earned?'':'locked'}">
-      <div class="badge-icon">${b.icon}</div>
-      <div class="badge-name">${b.name}</div>
-      <div class="badge-desc">${b.desc}</div>
-    </div>`;
+    return `<div class="badge-item ${earned?'':'locked'}"><div class="badge-icon">${b.icon}</div><div class="badge-name">${b.name}</div><div class="badge-desc">${b.desc}</div></div>`;
   }).join('');
+}
+
+// ═══════════════════════════════════════════
+// SUPABASE SYNC
+// ═══════════════════════════════════════════
+/*
+  HOW IT WORKS:
+  - Uses Supabase REST API directly (no SDK needed)
+  - Requires a table called `forge_data` with columns:
+      user_id TEXT PRIMARY KEY
+      history JSONB
+      prs JSONB
+      templates JSONB
+      xp INTEGER
+      updated_at TIMESTAMPTZ DEFAULT now()
+  - Enable Row Level Security (RLS) on the table
+  - Users identify by a self-generated UUID stored in localStorage
+*/
+
+function sbHeaders(){
+  return {
+    'Content-Type':'application/json',
+    'apikey':supabaseKey,
+    'Authorization':'Bearer '+supabaseKey,
+    'Prefer':'return=minimal',
+  };
+}
+
+async function syncToSupabase(){
+  if(!supabaseUrl||!supabaseKey||!supabaseUserId)return;
+  setSyncState('syncing');
+  try {
+    // Exclude photo data from sync to keep payload small
+    const historyNoPhotos=history.map(w=>({...w,photo:null}));
+    const payload={
+      user_id:supabaseUserId,
+      history:historyNoPhotos,
+      prs,
+      templates,
+      xp:currentXP,
+      updated_at:new Date().toISOString(),
+    };
+    const res=await fetch(`${supabaseUrl}/rest/v1/forge_data?user_id=eq.${supabaseUserId}`,{
+      method:'PUT',
+      headers:sbHeaders(),
+      body:JSON.stringify(payload),
+    });
+    if(!res.ok){
+      // Try POST (upsert) if record doesn't exist
+      const res2=await fetch(`${supabaseUrl}/rest/v1/forge_data`,{
+        method:'POST',
+        headers:{...sbHeaders(),'Prefer':'resolution=merge-duplicates,return=minimal'},
+        body:JSON.stringify(payload),
+      });
+      if(!res2.ok)throw new Error('Sync failed: '+res2.status);
+    }
+    setSyncState('synced');
+    showToast('☁️ Synced!','blue');
+  } catch(e){
+    setSyncState('error');
+    showToast('Sync failed — check settings');
+  }
+}
+
+async function pullFromSupabase(){
+  if(!supabaseUrl||!supabaseKey||!supabaseUserId)return;
+  setSyncState('syncing');
+  try {
+    const res=await fetch(`${supabaseUrl}/rest/v1/forge_data?user_id=eq.${supabaseUserId}&select=*`,{
+      headers:{
+        'apikey':supabaseKey,
+        'Authorization':'Bearer '+supabaseKey,
+      }
+    });
+    if(!res.ok)throw new Error('Pull failed: '+res.status);
+    const data=await res.json();
+    if(!data.length){setSyncState('error');showToast('No cloud data found');return;}
+    const remote=data[0];
+    // Merge: keep local history, prepend any remote entries not in local
+    const localIds=new Set(history.map(w=>w.id));
+    const newEntries=(remote.history||[]).filter(w=>!localIds.has(w.id));
+    history=[...newEntries,...history];
+    if(history.length>100)history=history.slice(0,100);
+    prs={...remote.prs,...prs};
+    templates=[...templates,...(remote.templates||[]).filter(t=>!templates.find(lt=>lt.name===t.name))];
+    if((remote.xp||0)>currentXP)currentXP=remote.xp;
+    saveState();
+    setSyncState('synced');
+    showToast('☁️ Data pulled from cloud!','blue');
+    closeSyncModal();
+  } catch(e){
+    setSyncState('error');
+    showToast('Pull failed — check settings');
+  }
+}
+
+function setSyncState(state){
+  syncState=state;
+  const btn=document.getElementById('syncBtn');
+  if(btn){
+    btn.className='sync-status '+state;
+    btn.innerHTML=`<span class="sync-dot ${state==='syncing'?'pulse':''}"></span>${state==='synced'?'Synced':state==='syncing'?'Syncing...':state==='error'?'Sync Error':'Sync'}`;
+  }
+}
+
+function openSyncModal(){
+  renderSyncModal();
+  document.getElementById('syncModal').classList.add('show');
+}
+function closeSyncModal(){document.getElementById('syncModal').classList.remove('show');}
+
+function renderSyncModal(){
+  const isConfigured=supabaseUrl&&supabaseKey&&supabaseUserId;
+  const body=document.getElementById('syncModalBody');
+  if(isConfigured){
+    body.innerHTML=`
+      <div class="sync-status-row">
+        <span class="sync-status-icon">${syncState==='synced'?'✅':syncState==='error'?'❌':syncState==='syncing'?'🔄':'☁️'}</span>
+        <div>
+          <div class="sync-status-text">${syncState==='synced'?'Synced to cloud':syncState==='error'?'Sync error':syncState==='syncing'?'Syncing...':'Ready to sync'}</div>
+          <div class="sync-status-sub">User ID: ${supabaseUserId.slice(0,8)}…</div>
+        </div>
+      </div>
+      <button class="sync-btn" onclick="syncToSupabase().then(()=>renderSyncModal())">⬆️ Push to Cloud</button>
+      <button class="sync-secondary-btn" onclick="pullFromSupabase()">⬇️ Pull from Cloud</button>
+      <div class="sync-info">Photos are excluded from cloud sync to keep data small. All other workout data, PRs, and templates will sync.</div>
+      <button class="sync-danger-btn" onclick="disconnectSupabase()">Disconnect Supabase</button>`;
+  } else {
+    body.innerHTML=`
+      <div class="sync-info">
+        Connect your Supabase project to sync workouts across devices.<br><br>
+        You'll need to create a table called <strong>forge_data</strong> in your Supabase project.
+        <a href="https://supabase.com" target="_blank" style="color:var(--blue)"> Open Supabase →</a>
+      </div>
+      <div class="sync-field-label">Supabase Project URL</div>
+      <input class="sync-input" id="sbUrlInput" placeholder="https://xxxx.supabase.co" value="${supabaseUrl}">
+      <div class="sync-field-label">Anon / Public API Key</div>
+      <input class="sync-input" id="sbKeyInput" placeholder="eyJ..." value="${supabaseKey}">
+      <div class="sync-field-label">Your User ID (auto-generated)</div>
+      <input class="sync-input" id="sbUidInput" placeholder="Auto-generated" value="${supabaseUserId||generateUID()}">
+      <button class="sync-btn" id="sbConnectBtn" onclick="connectSupabase()">Connect & Sync</button>
+      <div class="sync-info" style="margin-top:8px">
+        <strong>Quick setup SQL:</strong><br>
+        <code style="font-size:10px;color:var(--cyan)">CREATE TABLE forge_data (user_id TEXT PRIMARY KEY, history JSONB, prs JSONB, templates JSONB, xp INTEGER, updated_at TIMESTAMPTZ DEFAULT now());</code>
+      </div>`;
+  }
+}
+
+function generateUID(){
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{
+    const r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16);
+  });
+}
+
+function connectSupabase(){
+  const url=document.getElementById('sbUrlInput').value.trim().replace(/\/$/,'');
+  const key=document.getElementById('sbKeyInput').value.trim();
+  const uid=document.getElementById('sbUidInput').value.trim()||generateUID();
+  if(!url||!key){showToast('Enter URL and API key');return;}
+  supabaseUrl=url;supabaseKey=key;supabaseUserId=uid;
+  localStorage.setItem('forge_sb_url',url);
+  localStorage.setItem('forge_sb_key',key);
+  localStorage.setItem('forge_sb_uid',uid);
+  renderSyncModal();
+  syncToSupabase().then(()=>renderSyncModal());
+}
+
+function disconnectSupabase(){
+  if(!confirm('Disconnect Supabase? Your local data is kept.'))return;
+  supabaseUrl='';supabaseKey='';supabaseUserId='';
+  localStorage.removeItem('forge_sb_url');
+  localStorage.removeItem('forge_sb_key');
+  localStorage.removeItem('forge_sb_uid');
+  setSyncState('idle');
+  renderSyncModal();
 }
 
 // ═══════════════════════════════════════════
@@ -1030,7 +1398,7 @@ function showShareModal(record){
       <div><div class="sp-stat-num">${totalSets}</div><div class="sp-stat-lbl">Sets</div></div>
       <div><div class="sp-stat-num">${totalReps}</div><div class="sp-stat-lbl">Reps</div></div>
     </div>
-    <div class="sp-exlist">${record.exercises.map(e=>`<span>${e.emoji} ${e.name}</span> — ${e.sets.length} sets<br>`).join('')}</div>
+    <div class="sp-exlist">${record.exercises.map(e=>`<span>${e.emoji} ${e.name}</span>${e.bodyweight?' (BW)':''} — ${e.sets.length} sets<br>`).join('')}</div>
     ${record.newPRs&&record.newPRs.length?`<div style="margin-top:8px;font-size:12px;color:var(--gold)">🏆 New PRs: ${record.newPRs.join(', ')}</div>`:''}`;
   document.getElementById('shareModal').classList.add('show');
 }
@@ -1040,8 +1408,8 @@ function buildShareText(r){
   const totalReps=r.exercises.reduce((s,e)=>s+e.sets.reduce((a,b)=>a+(parseInt(b.reps)||0),0),0);
   let t=`💪 FORGE Workout\n${r.name} — ${r.date}\n\n📊 ${r.exercises.length} exercises · ${totalSets} sets · ${totalReps} reps\n\n`;
   r.exercises.forEach(e=>{
-    t+=`${e.emoji} ${e.name}\n`;
-    e.sets.forEach((s,i)=>{t+=`  Set ${i+1}: ${s.reps||'—'} reps${s.weight?' @ '+s.weight+'lb':''}\n`;});
+    t+=`${e.emoji} ${e.name}${e.bodyweight?' (Bodyweight)':''}\n`;
+    e.sets.forEach((s,i)=>{t+=`  Set ${i+1}: ${s.reps||'—'} reps${e.bodyweight?'':s.weight?' @ '+s.weight+'lb':''}\n`;});
     t+='\n';
   });
   if(r.newPRs&&r.newPRs.length)t+=`🏆 New PRs: ${r.newPRs.join(', ')}\n\n`;
@@ -1049,9 +1417,7 @@ function buildShareText(r){
 }
 function copyWorkoutText(){
   if(!lastWorkout)return;
-  const txt=buildShareText(lastWorkout);
-  if(navigator.clipboard)navigator.clipboard.writeText(txt).then(()=>showToast('Copied!')).catch(()=>showToast('Copy failed'));
-  else showToast('Copy not supported');
+  navigator.clipboard?.writeText(buildShareText(lastWorkout)).then(()=>showToast('Copied!')).catch(()=>showToast('Copy failed'));
 }
 function nativeShare(){
   if(!lastWorkout)return;
@@ -1063,10 +1429,10 @@ function nativeShare(){
 // ═══════════════════════════════════════════
 // TOAST
 // ═══════════════════════════════════════════
-function showToast(msg,isGold=false){
+function showToast(msg,type=''){
   const t=document.getElementById('toast');
   t.textContent=msg;
-  t.className='toast show'+(isGold?' new-pr-toast':'');
+  t.className='toast show'+(type==='gold'?' new-pr-toast':type==='blue'?' toast-blue':'');
   clearTimeout(toastTO);
   toastTO=setTimeout(()=>t.classList.remove('show'),2800);
 }
@@ -1074,15 +1440,16 @@ function showToast(msg,isGold=false){
 // ═══════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════
+autoRestEnabled=localStorage.getItem('forge_autorest')==='1';
+document.getElementById('autoRestToggle').checked=autoRestEnabled;
+
 renderExercises();
 renderSession();
 renderTemplates();
 updateTimerUI();
 
 if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>{
-    navigator.serviceWorker.register('/sw.js').catch(()=>{});
-  });
+  window.addEventListener('load',()=>{navigator.serviceWorker.register('/sw.js').catch(()=>{});});
 }
 </script>
 </body>
