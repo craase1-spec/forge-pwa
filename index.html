@@ -15,7 +15,7 @@
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
   --bg:#0a0a0c;--surface:#111115;--card:#16161c;--border:#252530;
-  --accent:#ff4d2e;--gold:#ffb800;--cyan:#00e5ff;--green:#39ff14;
+  --accent:#00b4ff;--gold:#ffb800;--cyan:#00e5ff;--green:#39ff14;
   --purple:#c084fc;--text:#f0f0f8;--muted:#5a5a70;--dim:#2a2a38;
   --blue:#3b82f6;
 }
@@ -32,7 +32,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Barlow
 .sync-status{display:flex;align-items:center;gap:5px;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;padding:5px 10px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface);color:var(--muted);transition:all .2s}
 .sync-status.synced{border-color:var(--green);color:var(--green)}
 .sync-status.syncing{border-color:var(--cyan);color:var(--cyan)}
-.sync-status.error{border-color:var(--accent);color:var(--accent)}
+.sync-status.error{border-color:#ff4d2e;color:#ff4d2e}
 .sync-dot{width:6px;height:6px;border-radius:50%;background:currentColor}
 .sync-dot.pulse{animation:pulse 1s ease infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
@@ -46,7 +46,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Barlow
 .cat-row{display:flex;gap:8px;margin-bottom:14px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
 .cat-row::-webkit-scrollbar{display:none}
 .cat-btn{flex-shrink:0;border:1.5px solid var(--border);background:transparent;color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1.5px;padding:6px 14px;border-radius:20px;cursor:pointer;text-transform:uppercase}
-.cat-btn.aw{border-color:var(--accent);color:var(--accent);background:rgba(255,77,46,.08)}
+.cat-btn.aw{border-color:var(--accent);color:var(--accent);background:rgba(0,180,255,.08)}
 .cat-btn.ar{border-color:var(--purple);color:var(--purple);background:rgba(192,132,252,.08)}
 .cat-btn.ac{border-color:var(--green);color:var(--green);background:rgba(57,255,20,.08)}
 .cat-btn.aa{border-color:var(--gold);color:var(--gold);background:rgba(255,184,0,.08)}
@@ -61,7 +61,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Barlow
 .ex-name{font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:700}
 .ex-meta{display:flex;gap:8px;margin-top:5px;align-items:center;flex-wrap:wrap}
 .ex-tag{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:3px 8px;border-radius:10px}
-.tw{background:rgba(255,77,46,.15);color:var(--accent)}
+.tw{background:rgba(0,180,255,.15);color:var(--accent)}
 .tr{background:rgba(192,132,252,.15);color:var(--purple)}
 .tc{background:rgba(57,255,20,.15);color:var(--green)}
 .ex-muscle{font-size:12px;color:var(--muted)}
@@ -108,7 +108,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Barlow
 .sets-ctrl-btn{background:var(--dim);border:none;color:var(--text);font-size:14px;border-radius:8px;padding:6px 14px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-weight:700}
 .add-custom-btn{width:100%;border:1.5px dashed var(--border);background:transparent;color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;border-radius:12px;padding:13px;cursor:pointer;margin-top:4px;display:block}
 .rest-timer-btn{width:100%;background:transparent;border:1.5px solid var(--cyan);color:var(--cyan);font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:2px;padding:12px;border-radius:10px;cursor:pointer;margin-top:8px;display:block}
-.start-btn{width:100%;background:linear-gradient(135deg,var(--accent),#ff7a00);border:none;color:#fff;font-family:'Bebas Neue',cursive;font-size:22px;letter-spacing:3px;padding:17px;border-radius:14px;cursor:pointer;margin-top:14px;box-shadow:0 8px 28px rgba(255,77,46,.35);display:block}
+.start-btn{width:100%;background:linear-gradient(135deg,var(--accent),#0077ff);border:none;color:#fff;font-family:'Bebas Neue',cursive;font-size:22px;letter-spacing:3px;padding:17px;border-radius:14px;cursor:pointer;margin-top:14px;box-shadow:0 8px 28px rgba(0,180,255,.35);display:block}
 
 /* SAVE TEMPLATE */
 .save-template-btn{width:100%;background:transparent;border:1.5px solid var(--gold);color:var(--gold);font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:2px;padding:12px;border-radius:10px;cursor:pointer;margin-top:8px;display:block}
@@ -184,7 +184,7 @@ canvas.mini-chart{width:100%;height:100px}
 
 /* PROFILE */
 .rank-card{background:linear-gradient(135deg,#1a0a0a,#0f0f18);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:16px;position:relative;overflow:hidden}
-.rank-card::before{content:'';position:absolute;top:-40px;right:-40px;width:140px;height:140px;background:radial-gradient(circle,rgba(255,77,46,.2),transparent 70%);border-radius:50%}
+.rank-card::before{content:'';position:absolute;top:-40px;right:-40px;width:140px;height:140px;background:radial-gradient(circle,rgba(0,180,255,.2),transparent 70%);border-radius:50%}
 .rank-name-row{display:flex;align-items:center;gap:12px;margin-bottom:14px}
 .rank-avatar{width:52px;height:52px;border-radius:50%;background:var(--dim);border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
 .rank-athlete-name{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700}
@@ -240,7 +240,7 @@ canvas.mini-chart{width:100%;height:100px}
 .modal-title{font-family:'Barlow Condensed',sans-serif;font-size:21px;font-weight:700;letter-spacing:.5px;margin-bottom:4px}
 .modal-sub{font-size:12px;color:var(--muted);margin-bottom:18px}
 .share-preview{background:linear-gradient(135deg,#0f0f18,#1a0a0a);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:18px;position:relative;overflow:hidden}
-.share-preview::before{content:'';position:absolute;top:-40px;right:-40px;width:130px;height:130px;background:radial-gradient(circle,rgba(255,77,46,.22),transparent 70%);border-radius:50%}
+.share-preview::before{content:'';position:absolute;top:-40px;right:-40px;width:130px;height:130px;background:radial-gradient(circle,rgba(0,180,255,.22),transparent 70%);border-radius:50%}
 .sp-logo{font-family:'Bebas Neue',cursive;font-size:20px;color:var(--accent);letter-spacing:3px;margin-bottom:8px}
 .sp-name{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:700;margin-bottom:4px}
 .sp-date{font-size:11px;color:var(--muted);margin-bottom:12px}
@@ -544,17 +544,99 @@ const RANKS=[
 ];
 
 const ALL_BADGES=[
-  {id:'first',name:'First Rep',desc:'Complete your first workout',icon:'🎯',check:h=>h.length>=1},
-  {id:'five',name:'High Five',desc:'Complete 5 workouts',icon:'✋',check:h=>h.length>=5},
-  {id:'ten',name:'Perfect Ten',desc:'Complete 10 workouts',icon:'🔟',check:h=>h.length>=10},
-  {id:'twentyfive',name:'Grinder',desc:'Complete 25 workouts',icon:'⚡',check:h=>h.length>=25},
-  {id:'fifty',name:'Iron Will',desc:'Complete 50 workouts',icon:'🔩',check:h=>h.length>=50},
-  {id:'streak3',name:'On Fire',desc:'3 day workout streak',icon:'🔥',check:(h,s)=>s>=3},
-  {id:'streak7',name:'Week Warrior',desc:'7 day workout streak',icon:'🗓️',check:(h,s)=>s>=7},
-  {id:'pr',name:'PR Machine',desc:'Set your first PR',icon:'🏆',check:(h,s,prs)=>Object.keys(prs).length>0},
-  {id:'sets100',name:'Century',desc:'Log 100 total sets',icon:'💯',check:h=>h.reduce((a,w)=>a+w.exercises.reduce((b,e)=>b+e.sets.length,0),0)>=100},
-  {id:'photo',name:'Flex Mode',desc:'Add a post-workout photo',icon:'📸',check:h=>h.some(w=>w.photo)},
-  {id:'variety',name:'All Rounder',desc:'Try all 3 exercise types',icon:'🎭',check:h=>{const cats=new Set(h.flatMap(w=>w.exercises.map(e=>e.cat)));return cats.has('weight')&&cats.has('rings')&&cats.has('cali');}},
+  {id:'first',name:'First Rep',desc:'Complete your first workout',icon:'🎯',check:h=>h.length>=1,
+    sound:ctx=>{// Single proud ding
+      const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);
+      o.type='triangle';o.frequency.setValueAtTime(880,ctx.currentTime);o.frequency.exponentialRampToValueAtTime(1100,ctx.currentTime+0.15);
+      g.gain.setValueAtTime(0.5,ctx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.8);
+      o.start();o.stop(ctx.currentTime+0.8);}},
+  {id:'five',name:'High Five',desc:'Complete 5 workouts',icon:'✋',check:h=>h.length>=5,
+    sound:ctx=>{// Five quick ascending pops
+      [0,0.1,0.2,0.3,0.4].forEach((t,i)=>{
+        const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);
+        o.type='sine';o.frequency.value=440+i*110;
+        g.gain.setValueAtTime(0.35,ctx.currentTime+t);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+t+0.18);
+        o.start(ctx.currentTime+t);o.stop(ctx.currentTime+t+0.18);});}},
+  {id:'ten',name:'Perfect Ten',desc:'Complete 10 workouts',icon:'🔟',check:h=>h.length>=10,
+    sound:ctx=>{// Bowling strike — rumble then crack
+      const buf=ctx.createBuffer(1,ctx.sampleRate*0.6,ctx.sampleRate);
+      const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/4000);
+      const src=ctx.createBufferSource(),g=ctx.createGain();src.buffer=buf;src.connect(g);g.connect(ctx.destination);
+      g.gain.setValueAtTime(0.6,ctx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.6);
+      src.start();}},
+  {id:'twentyfive',name:'Grinder',desc:'Complete 25 workouts',icon:'⚡',check:h=>h.length>=25,
+    sound:ctx=>{// Electric zap
+      const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);
+      o.type='sawtooth';o.frequency.setValueAtTime(80,ctx.currentTime);o.frequency.exponentialRampToValueAtTime(1200,ctx.currentTime+0.08);
+      o.frequency.exponentialRampToValueAtTime(60,ctx.currentTime+0.25);
+      g.gain.setValueAtTime(0.5,ctx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.3);
+      o.start();o.stop(ctx.currentTime+0.3);}},
+  {id:'fifty',name:'Iron Will',desc:'Complete 50 workouts',icon:'🔩',check:h=>h.length>=50,
+    sound:ctx=>{// Heavy metal clank
+      [0,0.05,0.12].forEach(t=>{
+        const buf=ctx.createBuffer(1,ctx.sampleRate*0.3,ctx.sampleRate);
+        const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/2000);
+        const src=ctx.createBufferSource(),g=ctx.createGain(),f=ctx.createBiquadFilter();
+        src.buffer=buf;f.type='bandpass';f.frequency.value=800+t*1000;
+        src.connect(f);f.connect(g);g.connect(ctx.destination);
+        g.gain.setValueAtTime(0.7,ctx.currentTime+t);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+t+0.3);
+        src.start(ctx.currentTime+t);});}},
+  {id:'streak3',name:'On Fire',desc:'3 day workout streak',icon:'🔥',check:(h,s)=>s>=3,
+    sound:ctx=>{// Fire whoosh — rising noise
+      const buf=ctx.createBuffer(1,ctx.sampleRate*0.5,ctx.sampleRate);
+      const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+      const src=ctx.createBufferSource(),g=ctx.createGain(),f=ctx.createBiquadFilter();
+      src.buffer=buf;f.type='bandpass';f.frequency.setValueAtTime(200,ctx.currentTime);
+      f.frequency.exponentialRampToValueAtTime(2000,ctx.currentTime+0.5);f.Q.value=0.8;
+      src.connect(f);f.connect(g);g.connect(ctx.destination);
+      g.gain.setValueAtTime(0.01,ctx.currentTime);g.gain.linearRampToValueAtTime(0.5,ctx.currentTime+0.25);
+      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.5);src.start();}},
+  {id:'streak7',name:'Week Warrior',desc:'7 day workout streak',icon:'🗓️',check:(h,s)=>s>=7,
+    sound:ctx=>{// Heroic fanfare — 3 power chords
+      [[261,329,392],[349,440,523],[523,659,784]].forEach(([f1,f2,f3],i)=>{
+        [f1,f2,f3].forEach(freq=>{
+          const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);
+          o.type='square';o.frequency.value=freq;
+          const t=ctx.currentTime+i*0.22;
+          g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.15,t+0.03);
+          g.gain.exponentialRampToValueAtTime(0.001,t+0.4);
+          o.start(t);o.stop(t+0.4);});});}},
+  {id:'pr',name:'PR Machine',desc:'Set your first PR',icon:'🏆',check:(h,s,prs)=>Object.keys(prs).length>0,
+    sound:ctx=>{// Trophy shimmer — sparkling arpeggios
+      [523,659,784,1047,1319].forEach((freq,i)=>{
+        const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);
+        o.type='sine';o.frequency.value=freq;
+        const t=ctx.currentTime+i*0.1;
+        g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.4,t+0.05);
+        g.gain.exponentialRampToValueAtTime(0.001,t+0.7);
+        o.start(t);o.stop(t+0.7);});}},
+  {id:'sets100',name:'Century',desc:'Log 100 total sets',icon:'💯',check:h=>h.reduce((a,w)=>a+w.exercises.reduce((b,e)=>b+e.sets.length,0),0)>=100,
+    sound:ctx=>{// Century alarm — pulsing siren
+      [0,0.15,0.3,0.45].forEach((t,i)=>{
+        const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);
+        o.type='sawtooth';o.frequency.setValueAtTime(i%2===0?600:800,ctx.currentTime+t);
+        g.gain.setValueAtTime(0.3,ctx.currentTime+t);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+t+0.12);
+        o.start(ctx.currentTime+t);o.stop(ctx.currentTime+t+0.12);});}},
+  {id:'photo',name:'Flex Mode',desc:'Add a post-workout photo',icon:'📸',check:h=>h.some(w=>w.photo),
+    sound:ctx=>{// Camera shutter click + flash
+      const buf=ctx.createBuffer(1,ctx.sampleRate*0.12,ctx.sampleRate);
+      const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/500);
+      const src=ctx.createBufferSource(),g=ctx.createGain();src.buffer=buf;src.connect(g);g.connect(ctx.destination);
+      g.gain.setValueAtTime(0.8,ctx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.12);
+      src.start();
+      // Flash tone
+      const o=ctx.createOscillator(),g2=ctx.createGain();o.connect(g2);g2.connect(ctx.destination);
+      o.type='sine';o.frequency.value=3000;
+      g2.gain.setValueAtTime(0.2,ctx.currentTime+0.05);g2.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.2);
+      o.start(ctx.currentTime+0.05);o.stop(ctx.currentTime+0.2);}},
+  {id:'variety',name:'All Rounder',desc:'Try all 3 exercise types',icon:'🎭',check:h=>{const cats=new Set(h.flatMap(w=>w.exercises.map(e=>e.cat)));return cats.has('weight')&&cats.has('rings')&&cats.has('cali');},
+    sound:ctx=>{// Three distinct tones — one per category
+      [{f:220,t:'sawtooth'},{f:440,t:'triangle'},{f:880,t:'sine'}].forEach(({f,t},i)=>{
+        const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);
+        o.type=t;o.frequency.value=f;
+        const st=ctx.currentTime+i*0.25;
+        g.gain.setValueAtTime(0.35,st);g.gain.exponentialRampToValueAtTime(0.001,st+0.4);
+        o.start(st);o.stop(st+0.4);});}},
 ];
 
 // ═══════════════════════════════════════════
@@ -614,7 +696,10 @@ function navTo(name){
   const isBrowseBuild=name==='browse'||name==='build';
   const hr=document.getElementById('headerRight');
   if(isBrowseBuild){
-    hr.innerHTML=`<div class="tab-pill" id="mainTabs"><button class="${name==='browse'?'active':''}" onclick="showScreen('browse')">Browse</button><button class="${name==='build'?'active':''}" onclick="showScreen('build')">Build</button></div>`;
+    hr.innerHTML=`<div class="tab-pill" id="mainTabs">
+      <button class="${name==='browse'?'active':''}" onclick="navTo('browse')">Browse</button>
+      <button class="${name==='build'?'active':''}" onclick="navTo('build')">Build</button>
+    </div>`;
   } else if(name==='profile'){
     hr.innerHTML=`<div class="sync-status ${syncState}" id="syncBtn" onclick="openSyncModal()"><span class="sync-dot ${syncState==='syncing'?'pulse':''}"></span>${syncState==='synced'?'Synced':syncState==='syncing'?'Syncing...':syncState==='error'?'Sync Error':'Sync'}</div>`;
   } else {
@@ -783,7 +868,7 @@ function renderSession(){
               <div class="set-lbl">Set ${si+1}</div>
               <div class="set-inputs" onclick="event.stopPropagation()">
                 <div class="mini-wrap">
-                  <input class="mini-input" type="number" inputmode="numeric" placeholder="—" value="${s.reps}" oninput="updateSet('${exObj.uid}',${si},'reps',this.value)">
+                  <input class="mini-input" type="number" inputmode="numeric" placeholder="—" value="${s.reps}" oninput="updateSet('${exObj.uid}',${si},'reps',this.value)" onblur="onRepsBlur('${exObj.uid}',${si},this.value)">
                   <div class="mini-lbl">Reps</div>
                 </div>
                 ${exObj.bodyweight
@@ -970,6 +1055,7 @@ function startTimerCountdown(){
       clearInterval(timerInterval);timerRunning=false;
       document.getElementById('timerToggleBtn').textContent='Start';
       navigator.vibrate&&navigator.vibrate([200,100,200,100,400]);
+      playChime();
       showToast('⏱ Rest Over — GO!');
       // Auto close after 1.5s if auto-triggered
       if(document.getElementById('timerAutoLabel').style.display!=='none'){
@@ -1055,10 +1141,10 @@ function renderExChart(){
     });
     ctx.stroke();
   };
-  drawLine(points.map(p=>p.weight),'#ff4d2e');
+  drawLine(points.map(p=>p.weight),'#00b4ff');
   if(points.some(p=>p.reps>0))drawLine(points.map(p=>p.reps),'#00e5ff');
 
-  ctx.fillStyle='#ff4d2e';ctx.fillRect(pad,H-20,20,4);ctx.fillStyle='#5a5a70';ctx.font='20px Barlow';ctx.fillText('Weight',pad+25,H-14);
+  ctx.fillStyle='#00b4ff';ctx.fillRect(pad,H-20,20,4);ctx.fillStyle='#5a5a70';ctx.font='20px Barlow';ctx.fillText('Weight',pad+25,H-14);
   ctx.fillStyle='#00e5ff';ctx.fillRect(120,H-20,20,4);ctx.fillStyle='#5a5a70';ctx.fillText('Reps',145,H-14);
 }
 
@@ -1193,7 +1279,7 @@ function renderProfile(){
   document.getElementById('streakRow').innerHTML=streakDots.join('');
   document.getElementById('badgesGrid').innerHTML=ALL_BADGES.map(b=>{
     const earned=b.check(history,streak,prs);
-    return `<div class="badge-item ${earned?'':'locked'}"><div class="badge-icon">${b.icon}</div><div class="badge-name">${b.name}</div><div class="badge-desc">${b.desc}</div></div>`;
+    return `<div class="badge-item ${earned?'':'locked'}" ${earned?`onclick="playBadgeSound('${b.id}')" style="cursor:pointer"`:''}><div class="badge-icon">${b.icon}</div><div class="badge-name">${b.name}</div><div class="badge-desc">${b.desc}</div>${earned?'<div style="font-size:9px;color:var(--muted);margin-top:4px;letter-spacing:1px">TAP TO HEAR</div>':''}</div>`;
   }).join('');
 }
 
@@ -1373,8 +1459,46 @@ function disconnectSupabase(){
 }
 
 // ═══════════════════════════════════════════
-// LEVEL UP
+// CHIME
 // ═══════════════════════════════════════════
+function playChime(){
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    const notes=[523.25,659.25,783.99,1046.50]; // C5 E5 G5 C6
+    notes.forEach((freq,i)=>{
+      const osc=ctx.createOscillator();
+      const gain=ctx.createGain();
+      osc.connect(gain);gain.connect(ctx.destination);
+      osc.type='sine';osc.frequency.value=freq;
+      const start=ctx.currentTime+i*0.18;
+      gain.gain.setValueAtTime(0,start);
+      gain.gain.linearRampToValueAtTime(0.4,start+0.04);
+      gain.gain.exponentialRampToValueAtTime(0.001,start+0.6);
+      osc.start(start);osc.stop(start+0.6);
+    });
+  }catch(e){}
+}
+
+function playBadgeSound(id){
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    const badge=ALL_BADGES.find(b=>b.id===id);
+    if(badge&&badge.sound)badge.sound(ctx);
+  }catch(e){}
+}
+
+// ── AUTO REST ON REPS BLUR ──
+function onRepsBlur(uid,si,val){
+  if(!autoRestEnabled)return;
+  if(!val||parseInt(val)<=0)return;
+  const ex=session.find(x=>x.uid===uid);
+  if(!ex)return;
+  ex.sets[si].done=true;
+  renderSession();
+  showTimer(true);
+}
+
+
 function showLevelUp(rank){
   document.getElementById('levelupEmoji').textContent=rank.emoji;
   document.getElementById('levelupRank').textContent='You reached '+rank.name+'!';
