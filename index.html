@@ -195,6 +195,7 @@ canvas.mini-chart{width:100%;height:100px}
 .xp-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--gold));border-radius:4px;transition:width .5s ease}
 .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
 .stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px}
+.wg-btn{width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
 .stat-num{font-family:'Bebas Neue',cursive;font-size:32px;color:var(--accent);line-height:1}
 .stat-lbl{font-size:11px;color:var(--muted);margin-top:3px;font-weight:600;letter-spacing:.5px}
 .badges-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
@@ -378,6 +379,7 @@ canvas.mini-chart{width:100%;height:100px}
     <div class="stats-grid" id="statsGrid"></div>
     <div class="prog-section-title" style="margin-bottom:10px">This Month's Streak 🔥</div>
     <div class="streak-row" id="streakRow"></div>
+    <div id="weeklyConsistency"></div>
     <div class="prog-section-title" style="margin-bottom:10px">Badges</div>
     <div class="badges-grid" id="badgesGrid"></div>
   </div>
@@ -660,6 +662,7 @@ let supabaseUrl=localStorage.getItem('forge_sb_url')||'';
 let supabaseKey=localStorage.getItem('forge_sb_key')||'';
 let supabaseUserId=localStorage.getItem('forge_sb_uid')||'';
 let syncState='idle'; // idle | syncing | synced | error
+let weeklyGoal=parseInt(localStorage.getItem('forge_weekly_goal')||'4');
 
 function saveState(){
   localStorage.setItem('forge_v3',JSON.stringify(history));
@@ -1315,14 +1318,98 @@ function renderHistory(){
 function saveAthleteName(){localStorage.setItem('forge_name',document.getElementById('athleteName').value);}
 function calcStreak(){
   if(!history.length)return 0;
+  const days=new Set(history.map(w=>{const d=new Date(w.timestamp);d.setHours(0,0,0,0);return d.getTime();}));
   const today=new Date();today.setHours(0,0,0,0);
-  let streak=0,check=new Date(today);
-  while(true){
-    const found=history.some(w=>{const d=new Date(w.timestamp);d.setHours(0,0,0,0);return d.getTime()===check.getTime();});
-    if(!found)break;
+  let start=new Date(today);
+  // Grace period: if no workout logged yet today, start counting from yesterday
+  // so an in-progress streak doesn't show as 0 before the day is over.
+  if(!days.has(start.getTime())){
+    start.setDate(start.getDate()-1);
+  }
+  let streak=0,check=new Date(start);
+  while(days.has(check.getTime())){
     streak++;check.setDate(check.getDate()-1);
   }
   return streak;
+}
+function calcLongestStreak(){
+  if(!history.length)return 0;
+  const days=[...new Set(history.map(w=>{const d=new Date(w.timestamp);d.setHours(0,0,0,0);return d.getTime();}))].sort((a,b)=>a-b);
+  let longest=1,current=1;
+  for(let i=1;i<days.length;i++){
+    const diffDays=Math.round((days[i]-days[i-1])/86400000);
+    if(diffDays===1){current++;longest=Math.max(longest,current);}
+    else if(diffDays>1){current=1;}
+  }
+  return longest;
+}
+function calcLifetimePRs(){
+  // Total PR events ever earned (not just currently-standing distinct PRs)
+  return history.reduce((sum,w)=>sum+((w.newPRs||[]).length),0);
+}
+function getWeekBounds(offsetWeeks){
+  // Returns {start,end} for a Mon–Sun week, offsetWeeks weeks back from the current week (0=this week)
+  const now=new Date();now.setHours(0,0,0,0);
+  const day=now.getDay(); // 0=Sun..6=Sat
+  const mondayOffset=day===0?-6:1-day;
+  const monday=new Date(now);monday.setDate(now.getDate()+mondayOffset-(offsetWeeks*7));
+  const sunday=new Date(monday);sunday.setDate(monday.getDate()+6);sunday.setHours(23,59,59,999);
+  return {start:monday,end:sunday};
+}
+function countWorkoutsInRange(start,end){
+  return history.filter(w=>w.timestamp>=start.getTime()&&w.timestamp<=end.getTime()).length;
+}
+function getWeeklyConsistency(numWeeks){
+  const weeks=[];
+  for(let i=numWeeks-1;i>=0;i--){
+    const {start,end}=getWeekBounds(i);
+    const count=countWorkoutsInRange(start,end);
+    weeks.push({
+      label:i===0?'This Wk':start.toLocaleDateString('en-US',{month:'short',day:'numeric'}),
+      count,
+      met:count>=weeklyGoal,
+    });
+  }
+  return weeks;
+}
+function setWeeklyGoal(val){
+  const n=parseInt(val)||1;
+  weeklyGoal=Math.max(1,Math.min(14,n));
+  localStorage.setItem('forge_weekly_goal',weeklyGoal);
+  renderProfile();
+}
+function renderWeeklyConsistency(){
+  const el=document.getElementById('weeklyConsistency');
+  if(!el)return;
+  const weeks=getWeeklyConsistency(8);
+  const thisWeek=weeks[weeks.length-1];
+  const metCount=weeks.filter(w=>w.met).length;
+  const maxCount=Math.max(...weeks.map(w=>w.count),weeklyGoal,1);
+  el.innerHTML=`
+    <div class="prog-section-title" style="margin-bottom:10px">Weekly Consistency</div>
+    <div class="chart-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="font-size:13px;color:var(--muted)">Weekly goal</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <button class="wg-btn" onclick="setWeeklyGoal(${weeklyGoal-1})">−</button>
+          <div style="font-family:'Bebas Neue',cursive;font-size:20px;color:var(--accent);min-width:24px;text-align:center">${weeklyGoal}</div>
+          <button class="wg-btn" onclick="setWeeklyGoal(${weeklyGoal+1})">+</button>
+          <div style="font-size:12px;color:var(--muted)">/ week</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:14px">
+        <div style="font-family:'Bebas Neue',cursive;font-size:36px;color:${thisWeek.met?'var(--green)':'var(--text)'}">${thisWeek.count}/${weeklyGoal}</div>
+        <div style="font-size:13px;color:var(--muted)">this week${thisWeek.met?' ✔':''}</div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:flex-end;height:70px">
+        ${weeks.map(w=>`
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+            <div style="width:100%;height:${Math.max(4,(w.count/maxCount)*50)}px;background:${w.met?'var(--green)':'var(--dim)'};border-radius:4px 4px 0 0"></div>
+            <div style="font-size:9px;color:var(--muted)">${w.label}</div>
+          </div>`).join('')}
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:10px;text-align:center">Hit your goal ${metCount}/8 of the last 8 weeks</div>
+    </div>`;
 }
 function renderProfile(){
   const name=localStorage.getItem('forge_name')||'';
@@ -1351,10 +1438,13 @@ function renderProfile(){
   const totalReps=history.reduce((a,w)=>a+w.exercises.reduce((b,e)=>b+e.sets.reduce((c,s)=>c+(parseInt(s.reps)||0),0),0),0);
   const totalWeight=history.reduce((a,w)=>a+w.exercises.reduce((b,e)=>b+e.sets.reduce((c,s)=>c+(parseInt(s.reps)||0)*(parseFloat(s.weight)||0),0),0),0);
   const streak=calcStreak();
+  const longestStreak=calcLongestStreak();
+  const lifetimePRs=calcLifetimePRs();
   document.getElementById('statsGrid').innerHTML=[
     [totalWorkouts,'Total Workouts'],[totalSets,'Total Sets'],
     [totalReps,'Total Reps'],[Math.round(totalWeight).toLocaleString()+'lb','Total Volume'],
-    [streak,'Day Streak 🔥'],[Object.keys(prs).length,'Personal Records'],
+    [streak,'Day Streak 🔥'],[longestStreak,'Longest Streak'],
+    [Object.keys(prs).length,'Current PRs'],[lifetimePRs,'Lifetime PRs 🏆'],
   ].map(([n,l])=>`<div class="stat-card"><div class="stat-num">${n}</div><div class="stat-lbl">${l}</div></div>`).join('');
 
   const today2=new Date();today2.setHours(0,0,0,0);
@@ -1366,6 +1456,7 @@ function renderProfile(){
     streakDots.push(`<div class="streak-dot ${isToday?'today':worked?'active':'empty'}">${d.getDate()}</div>`);
   }
   document.getElementById('streakRow').innerHTML=streakDots.join('');
+  renderWeeklyConsistency();
   document.getElementById('badgesGrid').innerHTML=ALL_BADGES.map(b=>{
     const earned=b.check(history,streak,prs);
     return `<div class="badge-item ${earned?'':'locked'}" ${earned?`onclick="playBadgeSound('${b.id}')" style="cursor:pointer"`:''}><div class="badge-icon">${b.icon}</div><div class="badge-name">${b.name}</div><div class="badge-desc">${b.desc}</div>${earned?'<div style="font-size:9px;color:var(--muted);margin-top:4px;letter-spacing:1px">TAP TO HEAR</div>':''}</div>`;
