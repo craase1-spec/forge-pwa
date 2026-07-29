@@ -352,9 +352,10 @@ canvas.mini-chart{width:100%;height:100px}
     <div class="prog-section">
       <div class="prog-section-title">Exercise Progress 📊</div>
       <div class="chart-card">
-        <select class="chart-select" id="chartExSelect" onchange="renderExChart()"></select>
+        <select class="chart-select" id="chartExSelect" onchange="renderExChart();renderExProgressStats()"></select>
         <canvas id="exChart" class="mini-chart" height="100"></canvas>
       </div>
+      <div id="exStatsCard"></div>
     </div>
     <div class="prog-section">
       <div class="prog-section-title">Monthly Volume 📅</div>
@@ -729,7 +730,7 @@ function renderExercises(){
   const tagClass={weight:'tw',rings:'tr',cali:'tc'};
   const cardClass={weight:'weight-card',rings:'rings-card',cali:'cali-card'};
   document.getElementById('exerciseList').innerHTML=list.map(ex=>{
-    const pr=prs[ex.id];
+    const pr=prs[ex.name];
     const prHtml=pr?`<span class="pr-badge">PR: ${pr.weight?pr.weight+'lb ':''}${pr.reps}rep</span>`:'';
     return `<div class="ex-card ${cardClass[ex.cat]}">
       <img class="ex-img" src="${IMG[ex.id]||''}" alt="${ex.name}" loading="lazy" onerror="this.style.display='none'">
@@ -1102,9 +1103,97 @@ function renderProgress(){
   const allExNames=[...new Set(history.flatMap(w=>w.exercises.map(e=>e.name)))];
   sel.innerHTML=allExNames.length?allExNames.map(n=>`<option value="${n}">${n}</option>`).join(''):'<option>No data yet</option>';
   renderExChart();
+  renderExProgressStats();
   renderVolBars();
 }
 
+// ═══════════════════════════════════════════
+// PROGRESSIVE OVERLOAD
+// ═══════════════════════════════════════════
+function estimate1RM(weight,reps){
+  if(!weight||!reps)return 0;
+  return Math.round(weight*(1+reps/30));
+}
+function getExercisePoints(name){
+  // returns chronological (oldest→newest) top-set points for an exercise
+  const points=[];
+  [...history].reverse().forEach(w=>{
+    const ex=w.exercises.find(e=>e.name===name);
+    if(!ex)return;
+    const top=ex.sets.reduce((best,s)=>{
+      const wt=parseFloat(s.weight)||0,r=parseInt(s.reps)||0;
+      if(!r)return best;
+      const vol=r*(wt||1);
+      const bestVol=best?best.r*(best.w||1):0;
+      return vol>bestVol?{w:wt,r}:best;
+    },null);
+    if(top)points.push({timestamp:w.timestamp,w:top.w,r:top.r,bodyweight:ex.bodyweight});
+  });
+  return points;
+}
+function findClosestBefore(points,refTs,daysAgo){
+  const targetTs=refTs-daysAgo*24*60*60*1000;
+  let closest=null,closestDiff=Infinity;
+  points.forEach(p=>{
+    if(p.timestamp<=targetTs){
+      const diff=targetTs-p.timestamp;
+      if(diff<closestDiff){closestDiff=diff;closest=p;}
+    }
+  });
+  return closest;
+}
+function pctChange(from,to){
+  if(!from)return null;
+  return Math.round(((to-from)/from)*100);
+}
+function suggestNext(latest){
+  if(!latest||!latest.r)return null;
+  if(latest.bodyweight)return `Aim for ${latest.r+1} reps next session`;
+  if(!latest.w)return `Add weight next session`;
+  if(latest.r>=10){
+    const inc=latest.w>=135?10:5;
+    return `Increase to ${latest.w+inc} lb next session`;
+  } else if(latest.r>=6){
+    return `Add 2.5–5 lb, or aim for ${latest.r+1} reps`;
+  } else {
+    return `Match ${latest.w} lb, aim for ${latest.r+1} reps`;
+  }
+}
+function renderExProgressStats(){
+  const sel=document.getElementById('chartExSelect');
+  const name=sel.value;
+  const card=document.getElementById('exStatsCard');
+  if(!card)return;
+  const points=getExercisePoints(name);
+  if(!points.length){card.innerHTML='';return;}
+  const latest=points[points.length-1];
+  const best=points.reduce((b,p)=>{
+    const vol=p.r*(p.w||1),bVol=b?b.r*(b.w||1):0;
+    return vol>bVol?p:b;
+  },null);
+  const currentE1RM=latest.bodyweight?null:estimate1RM(latest.w,latest.r);
+  const bestE1RM=best.bodyweight?null:estimate1RM(best.w,best.r);
+  const weekAgo=findClosestBefore(points,latest.timestamp,7);
+  const monthAgo=findClosestBefore(points,latest.timestamp,30);
+  const weekDelta=weekAgo&&currentE1RM?pctChange(estimate1RM(weekAgo.w,weekAgo.r),currentE1RM):null;
+  const monthDelta=monthAgo&&currentE1RM?pctChange(estimate1RM(monthAgo.w,monthAgo.r),currentE1RM):null;
+  const fmtDelta=d=>d===null?'—':`${d>0?'↑ +':d<0?'↓ ':''}${d}%`;
+  const suggestion=suggestNext(latest);
+
+  card.innerHTML=`
+    <div class="stats-grid" style="margin-bottom:10px">
+      <div class="stat-card"><div class="stat-num">${latest.bodyweight?'BW':latest.w+'lb'}</div><div class="stat-lbl">Current Weight</div></div>
+      <div class="stat-card"><div class="stat-num">${latest.r}</div><div class="stat-lbl">Current Reps</div></div>
+      <div class="stat-card"><div class="stat-num">${best.bodyweight?'BW':best.w+'lb'}</div><div class="stat-lbl">Best Weight</div></div>
+      <div class="stat-card"><div class="stat-num">${best.r}</div><div class="stat-lbl">Best Reps</div></div>
+      ${currentE1RM?`<div class="stat-card"><div class="stat-num">${currentE1RM}lb</div><div class="stat-lbl">Est. 1RM (current)</div></div>`:''}
+      ${bestE1RM?`<div class="stat-card"><div class="stat-num">${bestE1RM}lb</div><div class="stat-lbl">Est. 1RM (best)</div></div>`:''}
+      <div class="stat-card"><div class="stat-num">${fmtDelta(weekDelta)}</div><div class="stat-lbl">7-Day Trend</div></div>
+      <div class="stat-card"><div class="stat-num">${fmtDelta(monthDelta)}</div><div class="stat-lbl">30-Day Trend</div></div>
+    </div>
+    ${suggestion?`<div class="chart-card" style="background:var(--accent2,#0a2a3a);border-color:var(--accent,#00b4ff)"><div class="prog-section-title" style="margin-bottom:4px">Suggested Next Session</div><div style="font-size:15px">${suggestion}</div></div>`:''}
+  `;
+}
 function renderExChart(){
   const sel=document.getElementById('chartExSelect');
   const name=sel.value;
