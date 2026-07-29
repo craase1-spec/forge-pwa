@@ -358,6 +358,7 @@ canvas.mini-chart{width:100%;height:100px}
   <!-- PROGRESS -->
   <div class="screen" id="progress-screen">
     <div class="prog-section" id="strengthScoreCard"></div>
+    <div class="prog-section" id="muscleBalanceCard"></div>
     <div class="prog-section">
       <div class="prog-section-title">Personal Records 🏆</div>
       <div id="prList"></div>
@@ -485,6 +486,80 @@ canvas.mini-chart{width:100%;height:100px}
 // ═══════════════════════════════════════════
 // DATA
 // ═══════════════════════════════════════════
+// Primary muscle group per catalog exercise, used for Muscle Balance Analysis.
+// One-time tagging: maps each exercise to a single primary group so percentages
+// across groups sum cleanly to 100% without double-counting.
+const MUSCLE_GROUPS=['Chest','Back','Shoulders','Legs','Core','Biceps','Triceps'];
+const EX_MUSCLE_MAP={
+  w1:'Chest', w2:'Legs', w3:'Legs', w4:'Shoulders', w5:'Back', w6:'Chest',
+  w7:'Legs', w8:'Back', w9:'Biceps', w10:'Triceps', w11:'Chest', w12:'Legs',
+  r1:'Chest', r2:'Back', r3:'Back', r4:'Chest', r5:'Back', r6:'Core',
+  r7:'Back', r8:'Shoulders',
+  c1:'Back', c2:'Chest', c3:'Legs', c4:'Chest', c5:'Shoulders', c6:'Core',
+  c7:'Core', c8:'Back', c9:'Core', c10:'Legs', c11:'Chest', c12:'Legs',
+};
+function getExerciseMuscleGroup(ex){
+  if(ex.exId&&EX_MUSCLE_MAP[ex.exId])return EX_MUSCLE_MAP[ex.exId];
+  // Fallback: match by name against the catalog (covers older records missing exId)
+  const cat=EXERCISES.find(c=>c.name===ex.name);
+  if(cat&&EX_MUSCLE_MAP[cat.id])return EX_MUSCLE_MAP[cat.id];
+  return null; // untagged (e.g. custom exercises)
+}
+function computeMuscleBalance(){
+  const {start,end}=getWeekBounds(0);
+  const workouts=history.filter(w=>w.timestamp>=start.getTime()&&w.timestamp<=end.getTime());
+  const counts={};
+  MUSCLE_GROUPS.forEach(g=>counts[g]=0);
+  let untaggedSets=0,totalSets=0;
+  workouts.forEach(w=>w.exercises.forEach(ex=>{
+    const group=getExerciseMuscleGroup(ex);
+    const setCount=ex.sets.filter(s=>parseInt(s.reps)>0).length;
+    totalSets+=setCount;
+    if(group)counts[group]+=setCount;
+    else untaggedSets+=setCount;
+  }));
+  const taggedTotal=MUSCLE_GROUPS.reduce((a,g)=>a+counts[g],0);
+  const evenShare=100/MUSCLE_GROUPS.length;
+  const groups=MUSCLE_GROUPS.map(g=>{
+    const pct=taggedTotal>0?Math.round((counts[g]/taggedTotal)*100):0;
+    let status='balanced';
+    if(taggedTotal>0&&counts[g]===0)status='undertrained';
+    else if(pct<evenShare*0.5)status='low';
+    else if(pct>evenShare*2)status='overtrained';
+    return {name:g,sets:counts[g],pct,status};
+  });
+  return {groups,totalSets,taggedTotal,untaggedSets,hasData:totalSets>0};
+}
+function renderMuscleBalance(){
+  const el=document.getElementById('muscleBalanceCard');
+  if(!el)return;
+  const data=computeMuscleBalance();
+  if(!data.hasData){
+    el.innerHTML=`<div class="prog-section-title">Muscle Balance 🎯</div><div class="chart-card"><div style="font-size:13px;color:var(--muted)">Log a workout this week to see your muscle balance</div></div>`;
+    return;
+  }
+  const statusColor={balanced:'var(--cyan)',undertrained:'#ff4d2e',low:'var(--gold)',overtrained:'var(--purple)'};
+  const statusLabel={balanced:'',undertrained:'Undertrained',low:'Low volume',overtrained:'High volume'};
+  const flagged=data.groups.filter(g=>g.status!=='balanced');
+  el.innerHTML=`
+    <div class="prog-section-title">Muscle Balance 🎯</div>
+    <div class="chart-card">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:12px">This week's set distribution${data.untaggedSets?` (${data.untaggedSets} sets from custom exercises untagged)`:''}</div>
+      ${data.groups.map(g=>`
+        <div style="margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+            <span style="font-weight:700">${g.name}</span>
+            <span style="color:${statusColor[g.status]}">${g.pct}%${statusLabel[g.status]?' · '+statusLabel[g.status]:''}</span>
+          </div>
+          <div style="height:8px;background:var(--dim);border-radius:4px;overflow:hidden">
+            <div style="height:100%;width:${g.pct}%;background:${statusColor[g.status]};border-radius:4px"></div>
+          </div>
+        </div>`).join('')}
+      ${flagged.length?`<div style="font-size:11px;color:var(--muted);margin-top:6px">
+        ${flagged.filter(g=>g.status==='undertrained'||g.status==='low').length?`⚠️ Consider adding volume for: ${flagged.filter(g=>g.status==='undertrained'||g.status==='low').map(g=>g.name).join(', ')}`:''}
+      </div>`:'<div style="font-size:11px;color:var(--green)">Well balanced this week 👍</div>'}
+    </div>`;
+}
 const EXERCISES=[
   {id:'w1',name:'Bench Press',cat:'weight',muscle:'Chest · Triceps',emoji:'🏋️',tip:'Keep shoulder blades retracted. Bar to mid-chest.'},
   {id:'w2',name:'Barbell Back Squat',cat:'weight',muscle:'Quads · Glutes',emoji:'🦵',tip:'Drive knees out, neutral spine, break parallel.'},
@@ -1228,6 +1303,7 @@ function renderPRFrequency(){
 }
 function renderProgress(){
   renderStrengthScore();
+  renderMuscleBalance();
   const prList=document.getElementById('prList');
   const prKeys=Object.keys(prs);
   if(!prKeys.length){
