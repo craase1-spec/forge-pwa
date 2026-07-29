@@ -263,6 +263,17 @@ canvas.mini-chart{width:100%;height:100px}
 .levelup-overlay{position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:700;display:none;align-items:center;justify-content:center;flex-direction:column;backdrop-filter:blur(8px)}
 .levelup-overlay.show{display:flex;animation:fadeIn .4s ease}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.pr-celebration-overlay{position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:750;display:none;align-items:center;justify-content:center;flex-direction:column;backdrop-filter:blur(8px)}
+.pr-celebration-overlay.show{display:flex;animation:fadeIn .3s ease}
+.pr-confetti-canvas{position:absolute;inset:0;pointer-events:none}
+.pr-celebration-content{text-align:center;padding:40px 30px;position:relative;z-index:2}
+.pr-fire-emoji{font-size:64px;margin-bottom:8px;animation:prFireFlicker .5s ease infinite alternate}
+@keyframes prFireFlicker{from{transform:scale(1) rotate(-2deg)}to{transform:scale(1.08) rotate(2deg)}}
+.pr-celebration-title{font-family:'Bebas Neue',cursive;font-size:44px;color:var(--gold);letter-spacing:3px;margin-bottom:14px;text-shadow:0 0 20px rgba(255,184,0,.5)}
+.pr-celebration-list{margin-bottom:24px}
+.pr-celebration-item{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:var(--text);margin-bottom:6px}
+.pr-celebration-item span{color:var(--gold)}
+.pr-celebration-btn{background:var(--gold);border:none;color:#000;font-family:'Bebas Neue',cursive;font-size:20px;letter-spacing:3px;padding:14px 40px;border-radius:14px;cursor:pointer}
 .levelup-content{text-align:center;padding:40px 30px}
 .levelup-emoji{font-size:72px;margin-bottom:16px;animation:bounce .6s ease infinite alternate}
 @keyframes bounce{from{transform:translateY(0)}to{transform:translateY(-10px)}}
@@ -445,6 +456,18 @@ canvas.mini-chart{width:100%;height:100px}
     <button class="levelup-btn" onclick="closeLevelUp()">LET'S GO 💪</button>
   </div>
 </div>
+
+<!-- PR CELEBRATION MODAL -->
+<div class="pr-celebration-overlay" id="prCelebrationOverlay">
+  <canvas class="pr-confetti-canvas" id="prConfettiCanvas"></canvas>
+  <div class="pr-celebration-content">
+    <div class="pr-fire-emoji">🔥</div>
+    <div class="pr-celebration-title">NEW PR!</div>
+    <div class="pr-celebration-list" id="prCelebrationList"></div>
+    <button class="pr-celebration-btn" onclick="closePRCelebration()">LET'S GO 💪</button>
+  </div>
+</div>
+
 
 <!-- SUPABASE SYNC MODAL -->
 <div class="sync-modal-overlay" id="syncModal" onclick="if(event.target===this)closeSyncModal()">
@@ -1014,9 +1037,9 @@ function finishWorkout(){
   document.getElementById('photoInput').value='';
   renderSession();
 
-  if(newPRs.length)showToast('🏆 New PR! '+newPRs[0],true);
+  if(newPRs.length)showPRCelebration(newPRs);
   if(newRank.name!==oldRank.name){
-    setTimeout(()=>showLevelUp(newRank),1000);
+    setTimeout(()=>showLevelUp(newRank),newPRs.length?500:1000);
   }
 
   showShareModal(record);
@@ -1822,6 +1845,106 @@ function onRepsBlur(uid,si,val){
   showTimer(true);
 }
 
+
+// ═══════════════════════════════════════════
+// PR CELEBRATION
+// ═══════════════════════════════════════════
+function playPRFanfare(){
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    // Triumphant ascending arpeggio, then a bright final chord
+    const arp=[392.00,523.25,659.25,783.99]; // G4 C5 E5 G5
+    arp.forEach((freq,i)=>{
+      const osc=ctx.createOscillator();
+      const gain=ctx.createGain();
+      osc.connect(gain);gain.connect(ctx.destination);
+      osc.type='triangle';osc.frequency.value=freq;
+      const start=ctx.currentTime+i*0.09;
+      gain.gain.setValueAtTime(0,start);
+      gain.gain.linearRampToValueAtTime(0.35,start+0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001,start+0.35);
+      osc.start(start);osc.stop(start+0.35);
+    });
+    // Final chord hit
+    const chordStart=ctx.currentTime+0.4;
+    [523.25,659.25,783.99,1046.50].forEach(freq=>{
+      const osc=ctx.createOscillator();
+      const gain=ctx.createGain();
+      osc.connect(gain);gain.connect(ctx.destination);
+      osc.type='sawtooth';osc.frequency.value=freq;
+      gain.gain.setValueAtTime(0,chordStart);
+      gain.gain.linearRampToValueAtTime(0.18,chordStart+0.03);
+      gain.gain.exponentialRampToValueAtTime(0.001,chordStart+0.9);
+      osc.start(chordStart);osc.stop(chordStart+0.9);
+    });
+  }catch(e){}
+}
+
+let prConfettiRAF=null;
+function launchConfetti(){
+  const canvas=document.getElementById('prConfettiCanvas');
+  if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  canvas.width=canvas.offsetWidth;canvas.height=canvas.offsetHeight;
+  const colors=['#00b4ff','#ffb800','#00e5ff','#39ff14','#c084fc','#ff4d2e'];
+  const pieces=[];
+  const count=90;
+  for(let i=0;i<count;i++){
+    pieces.push({
+      x:Math.random()*canvas.width,
+      y:-20-Math.random()*canvas.height*0.5,
+      w:4+Math.random()*5,
+      h:8+Math.random()*6,
+      color:colors[Math.floor(Math.random()*colors.length)],
+      rot:Math.random()*360,
+      rotSpeed:(Math.random()-0.5)*12,
+      vy:2+Math.random()*3,
+      vx:(Math.random()-0.5)*2,
+      opacity:1,
+    });
+  }
+  if(prConfettiRAF)cancelAnimationFrame(prConfettiRAF);
+  const start=performance.now();
+  function frame(now){
+    const elapsed=now-start;
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    pieces.forEach(p=>{
+      p.x+=p.vx;p.y+=p.vy;p.rot+=p.rotSpeed;
+      if(elapsed>1800)p.opacity=Math.max(0,1-(elapsed-1800)/700);
+      ctx.save();
+      ctx.globalAlpha=p.opacity;
+      ctx.translate(p.x,p.y);
+      ctx.rotate(p.rot*Math.PI/180);
+      ctx.fillStyle=p.color;
+      ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
+      ctx.restore();
+    });
+    if(elapsed<2500){
+      prConfettiRAF=requestAnimationFrame(frame);
+    } else {
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+    }
+  }
+  prConfettiRAF=requestAnimationFrame(frame);
+}
+
+function showPRCelebration(prNames){
+  const list=document.getElementById('prCelebrationList');
+  list.innerHTML=[...new Set(prNames)].map(name=>{
+    const pr=prs[name];
+    if(!pr)return `<div class="pr-celebration-item">${name}</div>`;
+    const valStr=pr.bodyweight?`${pr.reps} reps`:`${pr.weight}lb × ${pr.reps}`;
+    return `<div class="pr-celebration-item">${name} — <span>${valStr}</span></div>`;
+  }).join('');
+  document.getElementById('prCelebrationOverlay').classList.add('show');
+  navigator.vibrate&&navigator.vibrate([100,50,100,50,300]);
+  playPRFanfare();
+  launchConfetti();
+}
+function closePRCelebration(){
+  document.getElementById('prCelebrationOverlay').classList.remove('show');
+  if(prConfettiRAF){cancelAnimationFrame(prConfettiRAF);prConfettiRAF=null;}
+}
 
 function showLevelUp(rank){
   document.getElementById('levelupEmoji').textContent=rank.emoji;
