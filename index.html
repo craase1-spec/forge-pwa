@@ -357,7 +357,9 @@ canvas.mini-chart{width:100%;height:100px}
 
   <!-- PROGRESS -->
   <div class="screen" id="progress-screen">
+    <div class="prog-section" id="forgeIndexCard"></div>
     <div class="prog-section" id="strengthScoreCard"></div>
+    <div class="prog-section" id="recoveryCard"></div>
     <div class="prog-section" id="cardioCard"></div>
     <div class="prog-section" id="muscleBalanceCard"></div>
     <div class="prog-section">
@@ -1261,6 +1263,10 @@ function computeRecoveryStatus(){
   if(prsThisWeek>=3&&restDays===0){
     riskPoints+=1;flags.push('Multiple PRs with zero recovery days');
   }
+  const cardioThisWeek=computeCardioSummary(0);
+  if(cardioThisWeek.minutes>150&&restDays===0){
+    riskPoints+=1;flags.push('High cardio load stacked on zero lifting rest days');
+  }
 
   let status,message;
   if(riskPoints>=4){
@@ -1303,7 +1309,8 @@ function renderRecoveryAnalysis(){
 function computeForgeIndex(){
   const thisWk=getWeekBounds(0);
   const workouts=history.filter(w=>w.timestamp>=thisWk.start.getTime()&&w.timestamp<=thisWk.end.getTime());
-  if(!workouts.length)return null;
+  const cardioThisWeek=computeCardioSummary(0);
+  if(!workouts.length&&!cardioThisWeek.count)return null;
 
   const consistencyPct=Math.min(100,(workouts.length/weeklyGoal)*100);
 
@@ -1319,20 +1326,32 @@ function computeForgeIndex(){
   const recovery=computeRecoveryStatus();
   const recoveryComponent={excellent:100,good:75,needRecovery:40,overreaching:15,noData:50}[recovery.status];
 
+  // 150 min/week is a common general-activity benchmark (CDC moderate-activity guideline)
+  const cardioComponent=Math.min(100,(cardioThisWeek.minutes/150)*100);
+
   const index=Math.round(
-    consistencyPct*0.30+
-    strengthComponent*0.30+
-    prComponent*0.15+
-    recoveryComponent*0.25
+    consistencyPct*0.25+
+    strengthComponent*0.25+
+    prComponent*0.10+
+    recoveryComponent*0.20+
+    cardioComponent*0.20
   );
-  return {index:Math.max(0,Math.min(100,index)),consistencyPct:Math.round(consistencyPct),strengthComponent:Math.round(strengthComponent),prComponent:Math.round(prComponent),recoveryComponent,prsThisWeek};
+  return {
+    index:Math.max(0,Math.min(100,index)),
+    consistencyPct:Math.round(consistencyPct),
+    strengthComponent:Math.round(strengthComponent),
+    prComponent:Math.round(prComponent),
+    recoveryComponent,
+    cardioComponent:Math.round(cardioComponent),
+    prsThisWeek,
+  };
 }
 function renderForgeIndex(){
   const el=document.getElementById('forgeIndexCard');
   if(!el)return;
   const f=computeForgeIndex();
   if(!f){
-    el.innerHTML=`<div class="chart-card" style="text-align:center"><div class="prog-section-title" style="margin-bottom:6px">Forge Index™</div><div style="font-size:13px;color:var(--muted)">Log a workout this week to calculate your Forge Index</div></div>`;
+    el.innerHTML=`<div class="chart-card" style="text-align:center"><div class="prog-section-title" style="margin-bottom:6px">Forge Index™</div><div style="font-size:13px;color:var(--muted)">Log a workout or cardio session this week to calculate your Forge Index</div></div>`;
     return;
   }
   let msg;
@@ -1346,7 +1365,7 @@ function renderForgeIndex(){
       <div class="prog-section-title" style="margin-bottom:6px">Forge Index™</div>
       <div style="font-family:'Bebas Neue',cursive;font-size:52px;color:${color};line-height:1">${f.index}<span style="font-size:20px;color:var(--muted)">/100</span></div>
       <div style="font-size:13px;color:var(--text);margin-top:4px">${msg}</div>
-      <div style="font-size:10px;color:var(--dim);margin-top:8px">Consistency · Strength Trend · PRs · Recovery — cardio not yet tracked</div>
+      <div style="font-size:10px;color:var(--dim);margin-top:8px">Consistency · Strength Trend · PRs · Recovery · Cardio</div>
     </div>`;
 }
 // ═══════════════════════════════════════════
@@ -1517,7 +1536,9 @@ function renderPRFrequency(){
     </div>`;
 }
 function renderProgress(){
+  renderForgeIndex();
   renderStrengthScore();
+  renderRecoveryAnalysis();
   renderCardioSummary();
   renderMuscleBalance();
   const prList=document.getElementById('prList');
