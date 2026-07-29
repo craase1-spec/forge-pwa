@@ -346,6 +346,7 @@ canvas.mini-chart{width:100%;height:100px}
 
   <!-- PROGRESS -->
   <div class="screen" id="progress-screen">
+    <div class="prog-section" id="strengthScoreCard"></div>
     <div class="prog-section">
       <div class="prog-section-title">Personal Records 🏆</div>
       <div id="prList"></div>
@@ -358,6 +359,7 @@ canvas.mini-chart{width:100%;height:100px}
       </div>
       <div id="exStatsCard"></div>
     </div>
+    <div class="prog-section" id="prFreqChart"></div>
     <div class="prog-section">
       <div class="prog-section-title">Monthly Volume 📅</div>
       <div class="chart-card">
@@ -1086,7 +1088,123 @@ function updateTimerUI(){
 // ═══════════════════════════════════════════
 // PROGRESS
 // ═══════════════════════════════════════════
+// ═══════════════════════════════════════════
+// STRENGTH SCORE & TREND DASHBOARD
+// ═══════════════════════════════════════════
+function totalVolumeForWorkouts(workouts){
+  return workouts.reduce((sum,w)=>sum+w.exercises.reduce((s,e)=>
+    s+e.sets.reduce((c,st)=>c+(parseInt(st.reps)||0)*(parseFloat(st.weight)||0),0),0),0);
+}
+function topE1RMByExercise(workouts){
+  const map={};
+  workouts.forEach(w=>w.exercises.forEach(ex=>{
+    if(ex.bodyweight)return;
+    const top=ex.sets.reduce((best,s)=>{
+      const wt=parseFloat(s.weight)||0,r=parseInt(s.reps)||0;
+      if(!r||!wt)return best;
+      const vol=r*wt;
+      const bestVol=best?best.r*best.w:0;
+      return vol>bestVol?{w:wt,r}:best;
+    },null);
+    if(top){
+      const e1rm=estimate1RM(top.w,top.r);
+      if(!map[ex.name]||e1rm>map[ex.name])map[ex.name]=e1rm;
+    }
+  }));
+  return map;
+}
+function computeStrengthScore(){
+  const thisWk=getWeekBounds(0),lastWk=getWeekBounds(1);
+  const thisWorkouts=history.filter(w=>w.timestamp>=thisWk.start.getTime()&&w.timestamp<=thisWk.end.getTime());
+  const lastWorkouts=history.filter(w=>w.timestamp>=lastWk.start.getTime()&&w.timestamp<=lastWk.end.getTime());
+  if(!thisWorkouts.length)return null;
+
+  const thisPRs=thisWorkouts.reduce((s,w)=>s+((w.newPRs||[]).length),0);
+
+  if(!lastWorkouts.length){
+    return {score:null,e1rmChangePct:null,volChangePct:null,prs:thisPRs,noComparison:true};
+  }
+
+  const thisMap=topE1RMByExercise(thisWorkouts);
+  const lastMap=topE1RMByExercise(lastWorkouts);
+  const shared=Object.keys(thisMap).filter(n=>lastMap[n]);
+  let e1rmChangePct=null;
+  if(shared.length){
+    const changes=shared.map(n=>((thisMap[n]-lastMap[n])/lastMap[n])*100);
+    e1rmChangePct=changes.reduce((a,b)=>a+b,0)/changes.length;
+  }
+
+  const thisVol=totalVolumeForWorkouts(thisWorkouts);
+  const lastVol=totalVolumeForWorkouts(lastWorkouts);
+  const volChangePct=lastVol>0?((thisVol-lastVol)/lastVol)*100:null;
+
+  let score;
+  if(e1rmChangePct!==null&&volChangePct!==null)score=e1rmChangePct*0.6+volChangePct*0.4;
+  else if(e1rmChangePct!==null)score=e1rmChangePct;
+  else if(volChangePct!==null)score=volChangePct;
+  else score=null;
+
+  return {
+    score:score!==null?Math.round(score*10)/10:null,
+    e1rmChangePct:e1rmChangePct!==null?Math.round(e1rmChangePct):null,
+    volChangePct:volChangePct!==null?Math.round(volChangePct):null,
+    prs:thisPRs,
+    sharedCount:shared.length,
+  };
+}
+function renderStrengthScore(){
+  const el=document.getElementById('strengthScoreCard');
+  if(!el)return;
+  const s=computeStrengthScore();
+  if(!s){
+    el.innerHTML=`<div class="chart-card"><div class="prog-section-title" style="margin-bottom:6px">Strength Score</div><div style="font-size:13px;color:var(--muted)">Log a workout this week to see your Strength Score</div></div>`;
+    return;
+  }
+  if(s.noComparison){
+    el.innerHTML=`<div class="chart-card">
+      <div class="prog-section-title" style="margin-bottom:6px">Strength Score</div>
+      <div style="font-size:13px;color:var(--muted)">First week of tracking — check back next week for a trend. ${s.prs?`${s.prs} PR${s.prs>1?'s':''} so far 🏆`:''}</div>
+    </div>`;
+    return;
+  }
+  const up=s.score>0,flat=s.score===0;
+  const color=up?'var(--green)':flat?'var(--muted)':'#ff4d2e';
+  const arrow=up?'↑':flat?'→':'↓';
+  const parts=[];
+  if(s.e1rmChangePct!==null)parts.push(`Est. 1RM ${s.e1rmChangePct>=0?'+':''}${s.e1rmChangePct}%`);
+  if(s.volChangePct!==null)parts.push(`Volume ${s.volChangePct>=0?'+':''}${s.volChangePct}%`);
+  parts.push(`${s.prs} PR${s.prs===1?'':'s'} this week`);
+  el.innerHTML=`<div class="chart-card">
+    <div class="prog-section-title" style="margin-bottom:6px">Strength Score (this week)</div>
+    <div style="font-family:'Bebas Neue',cursive;font-size:40px;color:${color}">${arrow} ${s.score>=0?'+':''}${s.score}%</div>
+    <div style="font-size:12px;color:var(--muted);margin-top:4px">${parts.join(' • ')}</div>
+  </div>`;
+}
+function renderPRFrequency(){
+  const el=document.getElementById('prFreqChart');
+  if(!el)return;
+  const weeks=[];
+  for(let i=7;i>=0;i--){
+    const {start,end}=getWeekBounds(i);
+    const wo=history.filter(w=>w.timestamp>=start.getTime()&&w.timestamp<=end.getTime());
+    const count=wo.reduce((s,w)=>s+((w.newPRs||[]).length),0);
+    weeks.push({label:i===0?'This Wk':start.toLocaleDateString('en-US',{month:'short',day:'numeric'}),count});
+  }
+  const maxCount=Math.max(...weeks.map(w=>w.count),1);
+  el.innerHTML=`
+    <div class="prog-section-title" style="margin-bottom:10px">PR Frequency 🏆</div>
+    <div class="chart-card">
+      <div style="display:flex;gap:6px;align-items:flex-end;height:70px">
+        ${weeks.map(w=>`
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+            <div style="width:100%;height:${Math.max(4,(w.count/maxCount)*50)}px;background:var(--gold);border-radius:4px 4px 0 0"></div>
+            <div style="font-size:9px;color:var(--muted)">${w.label}</div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+}
 function renderProgress(){
+  renderStrengthScore();
   const prList=document.getElementById('prList');
   const prKeys=Object.keys(prs);
   if(!prKeys.length){
@@ -1107,6 +1225,7 @@ function renderProgress(){
   sel.innerHTML=allExNames.length?allExNames.map(n=>`<option value="${n}">${n}</option>`).join(''):'<option>No data yet</option>';
   renderExChart();
   renderExProgressStats();
+  renderPRFrequency();
   renderVolBars();
 }
 
@@ -1248,14 +1367,13 @@ function renderVolBars(){
     months.push({label:d.toLocaleDateString('en-US',{month:'short'}),year:d.getFullYear(),month:d.getMonth()});
   }
   const vols=months.map(m=>
-    history.filter(w=>{const d=new Date(w.timestamp);return d.getFullYear()===m.year&&d.getMonth()===m.month;})
-      .reduce((sum,w)=>sum+w.exercises.reduce((a,e)=>a+e.sets.length,0),0)
+    totalVolumeForWorkouts(history.filter(w=>{const d=new Date(w.timestamp);return d.getFullYear()===m.year&&d.getMonth()===m.month;}))
   );
   const maxVol=Math.max(...vols,1);
   document.getElementById('volBars').innerHTML=vols.map((v,i)=>`
     <div class="vol-bar-wrap">
       <div class="vol-bar" style="height:${(v/maxVol)*70}px"></div>
-      <div class="vol-bar-lbl">${months[i].label}<br>${v}</div>
+      <div class="vol-bar-lbl">${months[i].label}<br>${Math.round(v).toLocaleString()}lb</div>
     </div>`).join('');
 }
 
