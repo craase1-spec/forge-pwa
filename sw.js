@@ -1,4 +1,4 @@
-const CACHE = 'forge-v1';
+const CACHE = 'forge-v2';
 
 const PRECACHE = [
   '/',
@@ -46,6 +46,21 @@ self.addEventListener('fetch', e => {
 
   // For Google Fonts — network first
   if (url.hostname.includes('fonts.googleapis.com') || url.hostname.includes('fonts.gstatic.com')) {
+    e.respondWith(
+      fetch(e.request)
+        .then(res => {
+          const clone = res.clone();
+          caches.open(CACHE).then(c => c.put(e.request, clone));
+          return res;
+        })
+        .catch(() => caches.match(e.request))
+    );
+    return;
+  }
+
+  // For the HTML shell / navigation — network first, so updates show up immediately.
+  // Falls back to cache only when offline.
+  if (e.request.mode === 'navigate' || url.pathname === '/' || url.pathname === '/index.html') {
     e.respondWith(
       fetch(e.request)
         .then(res => {
