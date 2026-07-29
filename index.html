@@ -358,6 +358,7 @@ canvas.mini-chart{width:100%;height:100px}
   <!-- PROGRESS -->
   <div class="screen" id="progress-screen">
     <div class="prog-section" id="strengthScoreCard"></div>
+    <div class="prog-section" id="cardioCard"></div>
     <div class="prog-section" id="muscleBalanceCard"></div>
     <div class="prog-section">
       <div class="prog-section-title">Personal Records 🏆</div>
@@ -477,6 +478,22 @@ canvas.mini-chart{width:100%;height:100px}
     <div class="modal-title">☁️ Cloud Sync</div>
     <div class="modal-sub">Back up & sync your data via Supabase</div>
     <div id="syncModalBody"></div>
+  </div>
+</div>
+
+<!-- CARDIO ENTRY MODAL -->
+<div class="sync-modal-overlay" id="cardioModal" onclick="if(event.target===this)closeCardioModal()">
+  <div class="sync-modal-sheet">
+    <div class="prog-section-title" style="margin-bottom:6px">Log Cardio 🚶</div>
+    <div class="sync-field-label">Duration (minutes)</div>
+    <input class="sync-input" id="cardioMinutes" type="number" inputmode="decimal" placeholder="e.g. 45">
+    <div class="sync-field-label">Distance (miles) — optional</div>
+    <input class="sync-input" id="cardioDistance" type="number" inputmode="decimal" step="0.1" placeholder="e.g. 2.5">
+    <div class="sync-field-label">Steps — optional</div>
+    <input class="sync-input" id="cardioSteps" type="number" inputmode="numeric" placeholder="e.g. 6000">
+    <div class="sync-field-label">Calories — optional (auto-estimated if left blank)</div>
+    <input class="sync-input" id="cardioCalories" type="number" inputmode="numeric" placeholder="auto">
+    <button class="sync-btn" style="margin-top:16px" onclick="addCardioEntry()">Save</button>
   </div>
 </div>
 
@@ -763,12 +780,14 @@ let supabaseKey=localStorage.getItem('forge_sb_key')||'';
 let supabaseUserId=localStorage.getItem('forge_sb_uid')||'';
 let syncState='idle'; // idle | syncing | synced | error
 let weeklyGoal=parseInt(localStorage.getItem('forge_weekly_goal')||'4');
+let cardioLog=JSON.parse(localStorage.getItem('forge_cardio')||'[]');
 
 function saveState(){
   localStorage.setItem('forge_v3',JSON.stringify(history));
   localStorage.setItem('forge_prs',JSON.stringify(prs));
   localStorage.setItem('forge_templates',JSON.stringify(templates));
   localStorage.setItem('forge_xp',currentXP);
+  localStorage.setItem('forge_cardio',JSON.stringify(cardioLog));
 }
 
 // ═══════════════════════════════════════════
@@ -1211,6 +1230,202 @@ function topE1RMByExercise(workouts){
   }));
   return map;
 }
+// ═══════════════════════════════════════════
+// RECOVERY ANALYSIS & FORGE INDEX
+// ═══════════════════════════════════════════
+function computeRecoveryStatus(){
+  const thisWk=getWeekBounds(0);
+  const workouts=history.filter(w=>w.timestamp>=thisWk.start.getTime()&&w.timestamp<=thisWk.end.getTime());
+  if(!workouts.length)return {status:'noData'};
+
+  const workoutDays=new Set(workouts.map(w=>{const d=new Date(w.timestamp);d.setHours(0,0,0,0);return d.getTime();})).size;
+  const restDays=Math.max(0,7-workoutDays);
+  const currentStreak=calcStreak();
+  const score=computeStrengthScore();
+  const prsThisWeek=workouts.reduce((s,w)=>s+((w.newPRs||[]).length),0);
+
+  const flags=[];
+  let riskPoints=0;
+
+  if(restDays<=0){riskPoints+=2;flags.push('No rest days this week');}
+  else if(restDays===1){riskPoints+=1;flags.push('Only 1 rest day this week');}
+
+  if(currentStreak>=7){riskPoints+=2;flags.push(`${currentStreak}-day streak with no rest`);}
+
+  if(score&&!score.noComparison&&score.e1rmChangePct!==null&&score.e1rmChangePct<-10){
+    riskPoints+=2;flags.push('Estimated 1RM dropped vs last week');
+  }
+  if(score&&!score.noComparison&&score.volChangePct!==null&&score.volChangePct<-20){
+    riskPoints+=1;flags.push('Training volume dropped sharply');
+  }
+  if(prsThisWeek>=3&&restDays===0){
+    riskPoints+=1;flags.push('Multiple PRs with zero recovery days');
+  }
+
+  let status,message;
+  if(riskPoints>=4){
+    status='overreaching';
+    message='Overreaching Detected — consider a rest day soon.';
+  } else if(riskPoints>=2){
+    status='needRecovery';
+    message='Need Additional Recovery — your body may benefit from more rest.';
+  } else if(workoutDays>=3&&restDays>=1&&(!score||score.noComparison||score.e1rmChangePct===null||score.e1rmChangePct>=0)){
+    status='excellent';
+    message="Excellent Recovery — training hard and bouncing back well.";
+  } else {
+    status='good';
+    message="Good Recovery — you're on a sustainable pace.";
+  }
+  return {status,message,flags,restDays,workoutDays,currentStreak,prsThisWeek};
+}
+function renderRecoveryAnalysis(){
+  const el=document.getElementById('recoveryCard');
+  if(!el)return;
+  const r=computeRecoveryStatus();
+  if(r.status==='noData'){
+    el.innerHTML=`<div class="prog-section-title">Recovery Analysis 🔋</div><div class="chart-card"><div style="font-size:13px;color:var(--muted)">Log a workout this week to see your recovery status</div></div>`;
+    return;
+  }
+  const icons={excellent:'🟢',good:'🔵',needRecovery:'🟡',overreaching:'🔴'};
+  const colors={excellent:'var(--green)',good:'var(--cyan)',needRecovery:'var(--gold)',overreaching:'#ff4d2e'};
+  el.innerHTML=`
+    <div class="prog-section-title">Recovery Analysis 🔋</div>
+    <div class="chart-card">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <span style="font-size:22px">${icons[r.status]}</span>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:16px;color:${colors[r.status]}">${r.message}</div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:${r.flags.length?'8px':'0'}">${r.workoutDays} workout day${r.workoutDays===1?'':'s'} · ${r.restDays} rest day${r.restDays===1?'':'s'} this week</div>
+      ${r.flags.length?r.flags.map(f=>`<div style="font-size:11px;color:var(--muted)">• ${f}</div>`).join(''):''}
+      <div style="font-size:10px;color:var(--dim);margin-top:8px">A pattern-based estimate from your logged training, not medical advice.</div>
+    </div>`;
+}
+function computeForgeIndex(){
+  const thisWk=getWeekBounds(0);
+  const workouts=history.filter(w=>w.timestamp>=thisWk.start.getTime()&&w.timestamp<=thisWk.end.getTime());
+  if(!workouts.length)return null;
+
+  const consistencyPct=Math.min(100,(workouts.length/weeklyGoal)*100);
+
+  const s=computeStrengthScore();
+  let strengthComponent=50;
+  if(s&&!s.noComparison&&s.score!==null){
+    strengthComponent=Math.max(0,Math.min(100,50+s.score*2.5));
+  }
+
+  const prsThisWeek=workouts.reduce((sum,w)=>sum+((w.newPRs||[]).length),0);
+  const prComponent=Math.min(100,prsThisWeek*25);
+
+  const recovery=computeRecoveryStatus();
+  const recoveryComponent={excellent:100,good:75,needRecovery:40,overreaching:15,noData:50}[recovery.status];
+
+  const index=Math.round(
+    consistencyPct*0.30+
+    strengthComponent*0.30+
+    prComponent*0.15+
+    recoveryComponent*0.25
+  );
+  return {index:Math.max(0,Math.min(100,index)),consistencyPct:Math.round(consistencyPct),strengthComponent:Math.round(strengthComponent),prComponent:Math.round(prComponent),recoveryComponent,prsThisWeek};
+}
+function renderForgeIndex(){
+  const el=document.getElementById('forgeIndexCard');
+  if(!el)return;
+  const f=computeForgeIndex();
+  if(!f){
+    el.innerHTML=`<div class="chart-card" style="text-align:center"><div class="prog-section-title" style="margin-bottom:6px">Forge Index™</div><div style="font-size:13px;color:var(--muted)">Log a workout this week to calculate your Forge Index</div></div>`;
+    return;
+  }
+  let msg;
+  if(f.index>=85)msg='Outstanding week. Keep this pace.';
+  else if(f.index>=70)msg='Strong week of training.';
+  else if(f.index>=50)msg='Solid progress — keep building.';
+  else msg='Room to grow this week — consistency helps most.';
+  const color=f.index>=85?'var(--green)':f.index>=70?'var(--cyan)':f.index>=50?'var(--gold)':'#ff4d2e';
+  el.innerHTML=`
+    <div class="chart-card" style="text-align:center">
+      <div class="prog-section-title" style="margin-bottom:6px">Forge Index™</div>
+      <div style="font-family:'Bebas Neue',cursive;font-size:52px;color:${color};line-height:1">${f.index}<span style="font-size:20px;color:var(--muted)">/100</span></div>
+      <div style="font-size:13px;color:var(--text);margin-top:4px">${msg}</div>
+      <div style="font-size:10px;color:var(--dim);margin-top:8px">Consistency · Strength Trend · PRs · Recovery — cardio not yet tracked</div>
+    </div>`;
+}
+// ═══════════════════════════════════════════
+// WALKING / CARDIO (manual entry)
+// ═══════════════════════════════════════════
+function openCardioModal(){
+  document.getElementById('cardioMinutes').value='';
+  document.getElementById('cardioDistance').value='';
+  document.getElementById('cardioSteps').value='';
+  document.getElementById('cardioCalories').value='';
+  document.getElementById('cardioModal').classList.add('show');
+}
+function closeCardioModal(){document.getElementById('cardioModal').classList.remove('show');}
+function addCardioEntry(){
+  const minutes=parseFloat(document.getElementById('cardioMinutes').value)||0;
+  const distance=parseFloat(document.getElementById('cardioDistance').value)||0;
+  const steps=parseInt(document.getElementById('cardioSteps').value)||0;
+  let calories=parseFloat(document.getElementById('cardioCalories').value)||0;
+  if(!minutes&&!distance&&!steps){showToast('Enter a duration, distance, or step count');return;}
+  if(!calories&&minutes)calories=Math.round(minutes*4.5); // rough walking-pace estimate (~4.5 kcal/min)
+  const entry={
+    id:Date.now(),
+    timestamp:Date.now(),
+    date:new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'}),
+    minutes,distance,steps,calories,
+  };
+  cardioLog.unshift(entry);
+  if(cardioLog.length>200)cardioLog.pop();
+  saveState();
+  closeCardioModal();
+  renderCardioSummary();
+  showToast('🚶 Cardio logged!');
+  if(supabaseUrl&&supabaseKey&&supabaseUserId)syncToSupabase();
+}
+function deleteCardioEntry(id){
+  if(!confirm('Delete this cardio entry?'))return;
+  cardioLog=cardioLog.filter(c=>c.id!==id);
+  saveState();
+  renderCardioSummary();
+}
+function computeCardioSummary(offsetWeeks){
+  const {start,end}=getWeekBounds(offsetWeeks);
+  const entries=cardioLog.filter(c=>c.timestamp>=start.getTime()&&c.timestamp<=end.getTime());
+  return {
+    minutes:entries.reduce((s,c)=>s+(c.minutes||0),0),
+    distance:entries.reduce((s,c)=>s+(c.distance||0),0),
+    calories:entries.reduce((s,c)=>s+(c.calories||0),0),
+    steps:entries.reduce((s,c)=>s+(c.steps||0),0),
+    count:entries.length,
+  };
+}
+function renderCardioSummary(){
+  const el=document.getElementById('cardioCard');
+  if(!el)return;
+  const wk=computeCardioSummary(0);
+  const hrs=(wk.minutes/60).toFixed(1);
+  el.innerHTML=`
+    <div class="prog-section-title">Walking / Cardio 🚶</div>
+    <div class="chart-card">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px">This week</div>
+      <div class="stats-grid" style="margin-bottom:12px">
+        <div class="stat-card"><div class="stat-num">${hrs}h</div><div class="stat-lbl">Time</div></div>
+        <div class="stat-card"><div class="stat-num">${Math.round(wk.calories).toLocaleString()}</div><div class="stat-lbl">Calories</div></div>
+        <div class="stat-card"><div class="stat-num">${wk.distance.toFixed(1)}mi</div><div class="stat-lbl">Distance</div></div>
+        <div class="stat-card"><div class="stat-num">${wk.steps.toLocaleString()}</div><div class="stat-lbl">Steps</div></div>
+      </div>
+      <button class="sync-btn" onclick="openCardioModal()">+ Log Cardio</button>
+      ${cardioLog.length?`<div style="margin-top:12px">
+        ${cardioLog.slice(0,5).map(c=>`
+          <div class="pr-card" style="padding:10px">
+            <div><div style="font-size:13px;font-weight:700">${c.date}</div><div style="font-size:11px;color:var(--muted)">${c.minutes?c.minutes+' min':''}${c.distance?' · '+c.distance+'mi':''}${c.steps?' · '+c.steps.toLocaleString()+' steps':''}</div></div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div class="pr-num" style="font-size:16px">${Math.round(c.calories)}<span style="font-size:11px">cal</span></div>
+              <span onclick="deleteCardioEntry(${c.id})" style="cursor:pointer;color:var(--muted);font-size:16px">✕</span>
+            </div>
+          </div>`).join('')}
+      </div>`:''}
+    </div>`;
+}
 function computeStrengthScore(){
   const thisWk=getWeekBounds(0),lastWk=getWeekBounds(1);
   const thisWorkouts=history.filter(w=>w.timestamp>=thisWk.start.getTime()&&w.timestamp<=thisWk.end.getTime());
@@ -1303,6 +1518,7 @@ function renderPRFrequency(){
 }
 function renderProgress(){
   renderStrengthScore();
+  renderCardioSummary();
   renderMuscleBalance();
   const prList=document.getElementById('prList');
   const prKeys=Object.keys(prs);
@@ -1734,6 +1950,7 @@ async function syncToSupabase(force){
       prs,
       templates,
       xp:currentXP,
+      cardio:cardioLog,
       updated_at:new Date().toISOString(),
     };
     const res=await fetch(`${supabaseUrl}/rest/v1/forge_data?user_id=eq.${supabaseUserId}`,{
@@ -1779,6 +1996,10 @@ async function pullFromSupabase(){
     if(history.length>100)history=history.slice(0,100);
     prs={...remote.prs,...prs};
     templates=[...templates,...(remote.templates||[]).filter(t=>!templates.find(lt=>lt.name===t.name))];
+    const localCardioIds=new Set(cardioLog.map(c=>c.id));
+    const newCardio=(remote.cardio||[]).filter(c=>!localCardioIds.has(c.id));
+    cardioLog=[...newCardio,...cardioLog];
+    if(cardioLog.length>200)cardioLog=cardioLog.slice(0,200);
     if((remote.xp||0)>currentXP)currentXP=remote.xp;
     saveState();
     setSyncState('synced');
