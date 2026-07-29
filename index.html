@@ -1398,8 +1398,24 @@ function sbHeaders(){
   };
 }
 
-async function syncToSupabase(){
+async function syncToSupabase(force){
   if(!supabaseUrl||!supabaseKey||!supabaseUserId)return;
+  // Safety check: never silently overwrite cloud data that has more workouts than this device.
+  if(!force){
+    try{
+      const checkRes=await fetch(`${supabaseUrl}/rest/v1/forge_data?user_id=eq.${supabaseUserId}&select=history`,{
+        headers:{'apikey':supabaseKey,'Authorization':'Bearer '+supabaseKey}
+      });
+      if(checkRes.ok){
+        const checkData=await checkRes.json();
+        const remoteCount=checkData.length?(checkData[0].history||[]).length:0;
+        if(remoteCount>history.length){
+          const proceed=confirm(`⚠️ Cloud has ${remoteCount} workouts, this device only has ${history.length}. Pushing will overwrite the cloud copy and cannot be undone. Continue?`);
+          if(!proceed){setSyncState('idle');showToast('Push cancelled');return;}
+        }
+      }
+    }catch(e){/* if the safety check itself fails, fall through to normal push */}
+  }
   setSyncState('syncing');
   try {
     // Exclude photo data from sync to keep payload small
@@ -1435,7 +1451,7 @@ async function syncToSupabase(){
 }
 
 async function pullFromSupabase(){
-  if(!supabaseUrl||!supabaseKey||!supabaseUserId)return;
+  if(!supabaseUrl||!supabaseKey||!supabaseUserId)return'error';
   setSyncState('syncing');
   try {
     const res=await fetch(`${supabaseUrl}/rest/v1/forge_data?user_id=eq.${supabaseUserId}&select=*`,{
@@ -1446,7 +1462,7 @@ async function pullFromSupabase(){
     });
     if(!res.ok)throw new Error('Pull failed: '+res.status);
     const data=await res.json();
-    if(!data.length){setSyncState('error');showToast('No cloud data found');return;}
+    if(!data.length){setSyncState('idle');showToast('No cloud data found — this is a new sync profile');return'empty';}
     const remote=data[0];
     // Merge: keep local history, prepend any remote entries not in local
     const localIds=new Set(history.map(w=>w.id));
@@ -1460,9 +1476,11 @@ async function pullFromSupabase(){
     setSyncState('synced');
     showToast('☁️ Data pulled from cloud!','blue');
     closeSyncModal();
+    return'success';
   } catch(e){
     setSyncState('error');
     showToast('Pull failed — check settings');
+    return'error';
   }
 }
 
@@ -1534,7 +1552,15 @@ function connectSupabase(){
   localStorage.setItem('forge_sb_key',key);
   localStorage.setItem('forge_sb_uid',uid);
   renderSyncModal();
-  syncToSupabase().then(()=>renderSyncModal());
+  // Always pull first when connecting — never overwrite existing cloud data.
+  // Only push if the cloud profile genuinely doesn't exist yet (new setup).
+  pullFromSupabase().then(result=>{
+    if(result==='empty'){
+      syncToSupabase(true).then(()=>renderSyncModal());
+    } else {
+      renderSyncModal();
+    }
+  });
 }
 
 function disconnectSupabase(){
