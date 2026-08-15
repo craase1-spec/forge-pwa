@@ -1299,6 +1299,7 @@ function finishWorkout(){
   document.getElementById('photoInput').value='';
   renderSession();
 
+  playSound('workout_finish');
   if(newPRs.length)showPRCelebration(newPRs);
   if(newRank.name!==oldRank.name){
     setTimeout(()=>showLevelUp(newRank),newPRs.length?500:1000);
@@ -1461,7 +1462,7 @@ function startSprintCountdown(){
       } else {
         // Rest complete — ready for next sprint
         navigator.vibrate&&navigator.vibrate([120,80,120]);
-        playChime();
+        playSound('sprint_rest_end',playChimeSynth);
         sprintPhase='sprint';
         sprintRem=sprintDur;
         if(sprintAutoCycle){
@@ -1525,6 +1526,7 @@ function finishSprintSession(){
   if(sprintLog.length>100)sprintLog.pop();
   saveState();
   if(supabaseUrl&&supabaseKey&&supabaseUserId)syncToSupabase();
+  playSound('sprint_session_complete');
   showToast(`🏁 Session saved — ${currentSprintSets.length} sprints!`);
   resetSprintTimer();
   renderSprintHistory();
@@ -1560,7 +1562,7 @@ function renderSprintHistory(){
       </div>
     </div>`).join('');
 }
-function playSprintAlarm(){
+function playSprintAlarmSynth(){
   try{
     const ctx=new(window.AudioContext||window.webkitAudioContext)();
     // Urgent double-beep alarm, higher pitched than the rest chime
@@ -1575,6 +1577,7 @@ function playSprintAlarm(){
     });
   }catch(e){}
 }
+function playSprintAlarm(){playSound('sprint_alarm',playSprintAlarmSynth);}
 
 // ═══════════════════════════════════════════
 // EQUIPMENT INVENTORY
@@ -1662,6 +1665,7 @@ function addEquipment(){
   document.getElementById('eqLabel').value='';
   renderEquipmentFormFields();
   renderEquipmentList();
+  playSound('equipment_added');
   showToast('🎒 Equipment added!');
   if(supabaseUrl&&supabaseKey&&supabaseUserId)pushEquipmentToSupabase(item);
 }
@@ -2002,6 +2006,7 @@ function logProteinQuick(grams){
   if(proteinLog.length>300)proteinLog.pop();
   saveState();
   renderDailyTargets();
+  playSound('protein_logged');
   showToast(`+${grams}g protein logged`);
   if(supabaseUrl&&supabaseKey&&supabaseUserId)syncToSupabase();
 }
@@ -3019,9 +3024,58 @@ function disconnectSupabase(){
 }
 
 // ═══════════════════════════════════════════
+// SOUND SYSTEM — real files with synthesized fallback
+// ═══════════════════════════════════════════
+// Maps each event to a filename expected in /sounds/. If the real file is missing
+// (404 or load error), the app falls back to the existing Web Audio synth version —
+// so nothing breaks before the real files are dropped in, and it upgrades automatically once they are.
+const SOUND_FILES={
+  ui_tap:'ui_tap.mp3',
+  ui_toggle:'ui_toggle.mp3',
+  ui_error:'ui_error.mp3',
+  workout_start:'workout_start.mp3',
+  set_complete:'set_complete.mp3',
+  rest_timer_end:'rest_timer_end.mp3',
+  workout_finish:'workout_finish.mp3',
+  sprint_alarm:'sprint_alarm.mp3',
+  sprint_rest_end:'sprint_rest_end.mp3',
+  sprint_session_complete:'sprint_session_complete.mp3',
+  pr_fanfare:'pr_fanfare.mp3',
+  level_up:'level_up.mp3',
+  badge_unlock:'badge_unlock.mp3',
+  streak_milestone:'streak_milestone.mp3',
+  challenge_complete:'challenge_complete.mp3',
+  daily_target_hit:'daily_target_hit.mp3',
+  protein_logged:'protein_logged.mp3',
+  sync_success:'sync_success.mp3',
+  sync_error:'sync_error.mp3',
+  equipment_added:'equipment_added.mp3',
+  app_launch:'app_launch.mp3',
+  app_close:'app_close.mp3',
+};
+const soundFileCache={}; // tracks which files are confirmed missing so we don't re-probe every call
+function playSound(key,fallbackFn){
+  const file=SOUND_FILES[key];
+  if(!file||soundFileCache[key]==='missing'){
+    if(fallbackFn)fallbackFn();
+    return;
+  }
+  try{
+    const audio=new Audio('/sounds/'+file);
+    audio.play().then(()=>{soundFileCache[key]='ok';}).catch(()=>{
+      soundFileCache[key]='missing';
+      if(fallbackFn)fallbackFn();
+    });
+  }catch(e){
+    soundFileCache[key]='missing';
+    if(fallbackFn)fallbackFn();
+  }
+}
+
+// ═══════════════════════════════════════════
 // CHIME
 // ═══════════════════════════════════════════
-function playChime(){
+function playChimeSynth(){
   try{
     const ctx=new(window.AudioContext||window.webkitAudioContext)();
     const notes=[523.25,659.25,783.99,1046.50]; // C5 E5 G5 C6
@@ -3038,13 +3092,16 @@ function playChime(){
     });
   }catch(e){}
 }
+function playChime(){playSound('rest_timer_end',playChimeSynth);}
 
 function playBadgeSound(id){
-  try{
-    const ctx=new(window.AudioContext||window.webkitAudioContext)();
-    const badge=ALL_BADGES.find(b=>b.id===id);
-    if(badge&&badge.sound)badge.sound(ctx);
-  }catch(e){}
+  playSound('badge_unlock',()=>{
+    try{
+      const ctx=new(window.AudioContext||window.webkitAudioContext)();
+      const badge=ALL_BADGES.find(b=>b.id===id);
+      if(badge&&badge.sound)badge.sound(ctx);
+    }catch(e){}
+  });
 }
 
 // ── AUTO REST ON REPS BLUR ──
@@ -3062,7 +3119,7 @@ function onRepsBlur(uid,si,val){
 // ═══════════════════════════════════════════
 // PR CELEBRATION
 // ═══════════════════════════════════════════
-function playPRFanfare(){
+function playPRFanfareSynth(){
   try{
     const ctx=new(window.AudioContext||window.webkitAudioContext)();
     // Triumphant ascending arpeggio, then a bright final chord
@@ -3092,6 +3149,7 @@ function playPRFanfare(){
     });
   }catch(e){}
 }
+function playPRFanfare(){playSound('pr_fanfare',playPRFanfareSynth);}
 
 let prConfettiRAF=null;
 function launchConfetti(){
@@ -3163,6 +3221,8 @@ function showLevelUp(rank){
   document.getElementById('levelupEmoji').textContent=rank.emoji;
   document.getElementById('levelupRank').textContent='You reached '+rank.name+'!';
   document.getElementById('levelupOverlay').classList.add('show');
+  navigator.vibrate&&navigator.vibrate([100,50,100,50,200]);
+  playSound('level_up');
 }
 function closeLevelUp(){document.getElementById('levelupOverlay').classList.remove('show');}
 
