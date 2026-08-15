@@ -185,6 +185,17 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Barlow
 .eq-card-meta{font-size:11px;color:var(--muted);margin-top:2px}
 .eq-card-del{color:var(--muted);cursor:pointer;font-size:16px;padding:4px}
 
+/* CHALLENGES */
+.challenge-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:11px}
+.challenge-card.completed{border-color:var(--gold);background:rgba(255,184,0,.06)}
+.challenge-header{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.challenge-icon{font-size:24px}
+.challenge-name{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700}
+.challenge-desc{font-size:11px;color:var(--muted);margin-top:1px}
+.challenge-check{margin-left:auto;font-size:20px}
+.challenge-progress-row{display:flex;align-items:center;justify-content:space-between;margin-top:8px}
+.challenge-progress-text{font-size:12px;color:var(--muted)}
+
 /* SAVE TEMPLATE */
 
 /* PROGRESS */
@@ -450,6 +461,7 @@ canvas.mini-chart{width:100%;height:100px}
   <!-- PROGRESS -->
   <div class="screen" id="progress-screen">
     <div class="prog-section" id="dailyTargetsCard"></div>
+    <button class="sync-btn" style="margin-top:0;margin-bottom:20px" onclick="openChallengesScreen()">🔥 FORGE Challenges</button>
     <div class="prog-section" id="forgeIndexCard"></div>
     <div class="prog-section" id="strengthScoreCard"></div>
     <div class="prog-section" id="recoveryCard"></div>
@@ -518,6 +530,16 @@ canvas.mini-chart{width:100%;height:100px}
     <div class="divider"></div>
     <div class="sec-label">Your Equipment</div>
     <div id="equipmentList"></div>
+  </div>
+
+  <!-- FORGE CHALLENGES (accessed from Progress, not in bottom nav) -->
+  <div class="screen" id="challenges-screen">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+      <button class="wg-btn" style="width:34px;height:34px;font-size:20px" onclick="closeChallengesScreen()">←</button>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700">FORGE Challenges 🔥</div>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:16px">Resets every Monday</div>
+    <div id="challengesList"></div>
   </div>
 
   <nav class="bottom-nav">
@@ -921,6 +943,7 @@ let cardioLog=JSON.parse(localStorage.getItem('forge_cardio')||'[]');
 let sprintLog=JSON.parse(localStorage.getItem('forge_sprints')||'[]');
 let proteinLog=JSON.parse(localStorage.getItem('forge_protein')||'[]');
 let dailyTargets=JSON.parse(localStorage.getItem('forge_daily_targets')||'{"steps":10000,"protein":150}');
+let challengeTargets=JSON.parse(localStorage.getItem('forge_challenge_targets')||'{"sprintSessions":3,"prCount":3,"proteinDays":5}');
 
 function saveState(){
   localStorage.setItem('forge_v3',JSON.stringify(history));
@@ -931,6 +954,7 @@ function saveState(){
   localStorage.setItem('forge_sprints',JSON.stringify(sprintLog));
   localStorage.setItem('forge_protein',JSON.stringify(proteinLog));
   localStorage.setItem('forge_daily_targets',JSON.stringify(dailyTargets));
+  localStorage.setItem('forge_challenge_targets',JSON.stringify(challengeTargets));
 }
 
 // ═══════════════════════════════════════════
@@ -2044,6 +2068,123 @@ function renderDailyTargets(){
       </div>
     </div>`;
 }
+
+// ═══════════════════════════════════════════
+// FORGE CHALLENGES (weekly, reset every Monday)
+// ═══════════════════════════════════════════
+function getDayKey(ts){const d=new Date(ts);d.setHours(0,0,0,0);return d.getTime();}
+function getWeekWorkouts(){
+  const {start,end}=getWeekBounds(0);
+  return history.filter(w=>w.timestamp>=start.getTime()&&w.timestamp<=end.getTime());
+}
+const CHALLENGE_DEFS=[
+  {id:'pushup100',name:'100 Pushups',icon:'💯',desc:'100+ push-ups in a single session',
+    compute(){
+      const wo=getWeekWorkouts();
+      let best=0;
+      wo.forEach(w=>w.exercises.forEach(ex=>{
+        if(!/push.?up/i.test(ex.name))return;
+        const reps=ex.sets.reduce((s,st)=>s+(parseInt(st.reps)||0),0);
+        if(reps>best)best=reps;
+      }));
+      return {progress:best,target:100,unit:'reps',completed:best>=100};
+    }},
+  {id:'repday400',name:'400 Rep Day',icon:'🔥',desc:'400+ total reps in one day',
+    compute(){
+      const wo=getWeekWorkouts();
+      const byDay={};
+      wo.forEach(w=>{
+        const key=getDayKey(w.timestamp);
+        const reps=w.exercises.reduce((s,e)=>s+e.sets.reduce((a,st)=>a+(parseInt(st.reps)||0),0),0);
+        byDay[key]=(byDay[key]||0)+reps;
+      });
+      const best=Math.max(0,...Object.values(byDay));
+      return {progress:best,target:400,unit:'reps',completed:best>=400};
+    }},
+  {id:'steps15k',name:'15K + Workout',icon:'🚶',desc:'15,000+ steps and a workout, same day',
+    compute(){
+      const {start,end}=getWeekBounds(0);
+      const cardio=cardioLog.filter(c=>c.timestamp>=start.getTime()&&c.timestamp<=end.getTime());
+      const stepsByDay={};
+      cardio.forEach(c=>{const k=getDayKey(c.timestamp);stepsByDay[k]=(stepsByDay[k]||0)+(c.steps||0);});
+      const workoutDays=new Set(getWeekWorkouts().map(w=>getDayKey(w.timestamp)));
+      let bestSteps=0,hit=false;
+      Object.keys(stepsByDay).forEach(k=>{
+        if(stepsByDay[k]>bestSteps)bestSteps=stepsByDay[k];
+        if(stepsByDay[k]>=15000&&workoutDays.has(Number(k)))hit=true;
+      });
+      return {progress:hit?15000:bestSteps,target:15000,unit:'steps',completed:hit};
+    }},
+  {id:'sprintstreak',name:'Sprint Streak',icon:'🏃',desc:`${challengeTargets.sprintSessions} sprint sessions this week`,adjustable:true,targetKey:'sprintSessions',
+    compute(){
+      const {start,end}=getWeekBounds(0);
+      const count=sprintLog.filter(s=>s.timestamp>=start.getTime()&&s.timestamp<=end.getTime()).length;
+      return {progress:count,target:challengeTargets.sprintSessions,unit:'sessions',completed:count>=challengeTargets.sprintSessions};
+    }},
+  {id:'prweek',name:'PR Week',icon:'🏆',desc:`${challengeTargets.prCount} PRs this week`,adjustable:true,targetKey:'prCount',
+    compute(){
+      const count=getWeekWorkouts().reduce((s,w)=>s+((w.newPRs||[]).length),0);
+      return {progress:count,target:challengeTargets.prCount,unit:'PRs',completed:count>=challengeTargets.prCount};
+    }},
+  {id:'proteinstreak',name:'Protein Streak',icon:'🥩',desc:`Hit protein target ${challengeTargets.proteinDays} days this week`,adjustable:true,targetKey:'proteinDays',
+    compute(){
+      const {start,end}=getWeekBounds(0);
+      const proteinByDay={};
+      proteinLog.filter(p=>p.timestamp>=start.getTime()&&p.timestamp<=end.getTime()).forEach(p=>{
+        const k=getDayKey(p.timestamp);proteinByDay[k]=(proteinByDay[k]||0)+(p.grams||0);
+      });
+      const daysHit=Object.values(proteinByDay).filter(g=>g>=dailyTargets.protein).length;
+      return {progress:daysHit,target:challengeTargets.proteinDays,unit:'days',completed:daysHit>=challengeTargets.proteinDays};
+    }},
+];
+function adjustChallengeTarget(id,delta){
+  const def=CHALLENGE_DEFS.find(c=>c.id===id);
+  if(!def||!def.adjustable)return;
+  challengeTargets[def.targetKey]=Math.max(1,challengeTargets[def.targetKey]+delta);
+  saveState();
+  renderChallenges();
+}
+function renderChallenges(){
+  const el=document.getElementById('challengesList');
+  if(!el)return;
+  el.innerHTML=CHALLENGE_DEFS.map(def=>{
+    const r=def.compute();
+    const pct=Math.min(100,Math.round((r.progress/r.target)*100));
+    const desc=def.id==='sprintstreak'?`${challengeTargets.sprintSessions} sprint sessions this week`
+      :def.id==='prweek'?`${challengeTargets.prCount} PRs this week`
+      :def.id==='proteinstreak'?`Hit protein target ${challengeTargets.proteinDays} days this week`
+      :def.desc;
+    return `<div class="challenge-card${r.completed?' completed':''}">
+      <div class="challenge-header">
+        <span class="challenge-icon">${def.icon}</span>
+        <div>
+          <div class="challenge-name">${def.name}</div>
+          <div class="challenge-desc">${desc}</div>
+        </div>
+        <span class="challenge-check">${r.completed?'✅':''}</span>
+      </div>
+      <div style="height:8px;background:var(--dim);border-radius:4px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:${r.completed?'var(--gold)':'var(--accent)'};border-radius:4px"></div>
+      </div>
+      <div class="challenge-progress-row">
+        <div class="challenge-progress-text">${r.progress}${r.unit==='steps'&&r.progress>=1000?'':''} / ${r.target} ${r.unit}</div>
+        ${def.adjustable?`<div style="display:flex;align-items:center;gap:6px">
+          <button class="wg-btn" style="width:22px;height:22px;font-size:13px" onclick="adjustChallengeTarget('${def.id}',-1)">−</button>
+          <button class="wg-btn" style="width:22px;height:22px;font-size:13px" onclick="adjustChallengeTarget('${def.id}',1)">+</button>
+        </div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+function openChallengesScreen(){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('challenges-screen').classList.add('active');
+  renderChallenges();
+}
+function closeChallengesScreen(){
+  navTo('progress');
+}
+
 function renderCardioSummary(){
   const el=document.getElementById('cardioCard');
   if(!el)return;
@@ -2715,6 +2856,7 @@ async function syncToSupabase(force){
       sprints:sprintLog,
       protein:proteinLog,
       daily_targets:dailyTargets,
+      challenge_targets:challengeTargets,
       updated_at:new Date().toISOString(),
     };
     const res=await fetch(`${supabaseUrl}/rest/v1/forge_data?user_id=eq.${supabaseUserId}`,{
@@ -2773,6 +2915,7 @@ async function pullFromSupabase(){
     proteinLog=[...newProtein,...proteinLog];
     if(proteinLog.length>300)proteinLog=proteinLog.slice(0,300);
     if(remote.daily_targets)dailyTargets={...dailyTargets,...remote.daily_targets};
+    if(remote.challenge_targets)challengeTargets={...challengeTargets,...remote.challenge_targets};
     if((remote.xp||0)>currentXP)currentXP=remote.xp;
     saveState();
     setSyncState('synced');
