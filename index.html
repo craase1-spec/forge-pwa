@@ -176,6 +176,15 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Barlow
 .sprint-set-chips{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
 .sprint-set-chip{background:var(--dim);color:var(--accent);font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;padding:3px 9px;border-radius:10px}
 
+/* EQUIPMENT INVENTORY */
+.eq-field-row{display:flex;gap:8px;margin-bottom:14px}
+.eq-field-col{flex:1}
+.eq-field-lbl{font-size:10px;color:var(--muted);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px}
+.eq-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
+.eq-card-name{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700}
+.eq-card-meta{font-size:11px;color:var(--muted);margin-top:2px}
+.eq-card-del{color:var(--muted);cursor:pointer;font-size:16px;padding:4px}
+
 /* SAVE TEMPLATE */
 
 /* PROGRESS */
@@ -475,6 +484,7 @@ canvas.mini-chart{width:100%;height:100px}
   <div class="screen" id="profile-screen">
     <input class="profile-name-input" id="athleteName" placeholder="Enter your name..." oninput="saveAthleteName()"/>
     <div class="rank-card" id="rankCard"></div>
+    <button class="sync-btn" style="margin-top:0;margin-bottom:16px" onclick="openEquipmentScreen()">🎒 Manage Equipment</button>
     <div class="prog-section-title" style="margin-bottom:10px">All-Time Stats</div>
     <div class="stats-grid" id="statsGrid"></div>
     <div class="prog-section-title" style="margin-bottom:10px">This Month's Streak 🔥</div>
@@ -482,6 +492,31 @@ canvas.mini-chart{width:100%;height:100px}
     <div id="weeklyConsistency"></div>
     <div class="prog-section-title" style="margin-bottom:10px">Badges</div>
     <div class="badges-grid" id="badgesGrid"></div>
+  </div>
+
+  <!-- EQUIPMENT INVENTORY (accessed from Profile, not in bottom nav) -->
+  <div class="screen" id="equipment-screen">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+      <button class="wg-btn" style="width:34px;height:34px;font-size:20px" onclick="closeEquipmentScreen()">←</button>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700">Equipment Inventory 🎒</div>
+    </div>
+
+    <div class="sec-label">Add Equipment</div>
+    <select class="chart-select" id="eqTypeSelect" onchange="renderEquipmentFormFields()">
+      <option value="dumbbell_fixed">Dumbbell (Fixed)</option>
+      <option value="dumbbell_adjustable">Dumbbell (Adjustable)</option>
+      <option value="barbell_plate">Barbell Plate</option>
+      <option value="ez_bar">EZ Curl Bar</option>
+      <option value="band">Resistance Band</option>
+      <option value="machine">Machine / Other</option>
+    </select>
+    <input class="input-field" id="eqLabel" placeholder="Label (e.g. Rubber Hex Dumbbell)"/>
+    <div id="eqFormFields"></div>
+    <button class="start-btn" style="margin-top:4px" onclick="addEquipment()">+ Add to Inventory</button>
+
+    <div class="divider"></div>
+    <div class="sec-label">Your Equipment</div>
+    <div id="equipmentList"></div>
   </div>
 
   <nav class="bottom-nav">
@@ -1500,7 +1535,195 @@ function playSprintAlarm(){
 }
 
 // ═══════════════════════════════════════════
-// PROGRESS
+// EQUIPMENT INVENTORY
+// ═══════════════════════════════════════════
+const EQ_TYPE_META={
+  dumbbell_fixed:{label:'Dumbbell (Fixed)',fields:['weight','quantity']},
+  dumbbell_adjustable:{label:'Dumbbell (Adjustable)',fields:['range','quantity']},
+  barbell_plate:{label:'Barbell Plate',fields:['weight','quantity']},
+  ez_bar:{label:'EZ Curl Bar',fields:['weight']},
+  band:{label:'Resistance Band',fields:['band','quantity']},
+  machine:{label:'Machine / Other',fields:['weight']},
+};
+let equipmentList=JSON.parse(localStorage.getItem('forge_equipment')||'[]');
+
+function renderEquipmentFormFields(){
+  const type=document.getElementById('eqTypeSelect').value;
+  const meta=EQ_TYPE_META[type];
+  const el=document.getElementById('eqFormFields');
+  let html='';
+  if(meta.fields.includes('weight')){
+    html+=`<div class="eq-field-row">
+      <div class="eq-field-col"><div class="eq-field-lbl">Weight (lb)</div><input class="input-field" style="margin-bottom:0" id="eqWeight" type="number" inputmode="decimal" placeholder="e.g. 35"></div>
+      ${meta.fields.includes('quantity')?`<div class="eq-field-col"><div class="eq-field-lbl">Quantity</div><input class="input-field" style="margin-bottom:0" id="eqQty" type="number" inputmode="numeric" value="2"></div>`:''}
+    </div>`;
+  }
+  if(meta.fields.includes('range')){
+    html+=`<div class="eq-field-row">
+      <div class="eq-field-col"><div class="eq-field-lbl">Min (lb)</div><input class="input-field" style="margin-bottom:0" id="eqMin" type="number" inputmode="decimal" placeholder="5"></div>
+      <div class="eq-field-col"><div class="eq-field-lbl">Max (lb)</div><input class="input-field" style="margin-bottom:0" id="eqMax" type="number" inputmode="decimal" placeholder="50"></div>
+      <div class="eq-field-col"><div class="eq-field-lbl">Increment</div><input class="input-field" style="margin-bottom:0" id="eqIncrement" type="number" inputmode="decimal" placeholder="5"></div>
+    </div>
+    <div class="eq-field-row">
+      <div class="eq-field-col"><div class="eq-field-lbl">Quantity (pairs)</div><input class="input-field" style="margin-bottom:0" id="eqQty" type="number" inputmode="numeric" value="1"></div>
+    </div>`;
+  }
+  if(meta.fields.includes('band')){
+    html+=`<div class="eq-field-row">
+      <div class="eq-field-col"><div class="eq-field-lbl">Resistance Level</div>
+        <select class="chart-select" style="margin-bottom:0" id="eqBandLevel">
+          <option value="light">Light</option>
+          <option value="medium">Medium</option>
+          <option value="heavy">Heavy</option>
+          <option value="x-heavy">X-Heavy</option>
+        </select>
+      </div>
+      <div class="eq-field-col"><div class="eq-field-lbl">Quantity</div><input class="input-field" style="margin-bottom:0" id="eqQty" type="number" inputmode="numeric" value="1"></div>
+    </div>`;
+  }
+  el.innerHTML=html;
+}
+
+function addEquipment(){
+  const type=document.getElementById('eqTypeSelect').value;
+  const label=document.getElementById('eqLabel').value.trim();
+  if(!label){showToast('Enter a label for this equipment');return;}
+  const meta=EQ_TYPE_META[type];
+  const item={
+    id:'eq_'+Date.now(),
+    equipment_type:type,
+    label,
+    weight_lb:null,quantity:1,band_resistance_level:null,
+    is_adjustable:false,increment_lb:null,min_weight_lb:null,max_weight_lb:null,
+    active:true,
+  };
+  if(meta.fields.includes('weight')){
+    const w=parseFloat(document.getElementById('eqWeight').value);
+    if(!w){showToast('Enter a weight');return;}
+    item.weight_lb=w;
+  }
+  if(meta.fields.includes('range')){
+    const min=parseFloat(document.getElementById('eqMin').value);
+    const max=parseFloat(document.getElementById('eqMax').value);
+    const inc=parseFloat(document.getElementById('eqIncrement').value);
+    if(!min||!max||!inc||max<=min){showToast('Enter valid min/max/increment');return;}
+    item.is_adjustable=true;item.min_weight_lb=min;item.max_weight_lb=max;item.increment_lb=inc;
+  }
+  if(meta.fields.includes('band')){
+    item.band_resistance_level=document.getElementById('eqBandLevel').value;
+  }
+  if(meta.fields.includes('quantity')){
+    item.quantity=parseInt(document.getElementById('eqQty').value)||1;
+  }
+  equipmentList.push(item);
+  localStorage.setItem('forge_equipment',JSON.stringify(equipmentList));
+  document.getElementById('eqLabel').value='';
+  renderEquipmentFormFields();
+  renderEquipmentList();
+  showToast('🎒 Equipment added!');
+  if(supabaseUrl&&supabaseKey&&supabaseUserId)pushEquipmentToSupabase(item);
+}
+
+function deleteEquipment(id){
+  if(!confirm('Remove this equipment from your inventory?'))return;
+  equipmentList=equipmentList.filter(e=>e.id!==id);
+  localStorage.setItem('forge_equipment',JSON.stringify(equipmentList));
+  renderEquipmentList();
+  if(supabaseUrl&&supabaseKey&&supabaseUserId)deleteEquipmentFromSupabase(id);
+}
+
+function eqSummaryText(item){
+  if(item.is_adjustable)return `${item.min_weight_lb}–${item.max_weight_lb}lb · ${item.increment_lb}lb increments · ${item.quantity} pair${item.quantity===1?'':'s'}`;
+  if(item.equipment_type==='band')return `${item.band_resistance_level} · ${item.quantity} band${item.quantity===1?'':'s'}`;
+  if(item.weight_lb!=null)return `${item.weight_lb}lb${item.quantity>1?' × '+item.quantity:''}`;
+  return '';
+}
+
+function renderEquipmentList(){
+  const el=document.getElementById('equipmentList');
+  if(!equipmentList.length){
+    el.innerHTML=`<div class="empty-state"><div class="empty-icon">🎒</div><div class="empty-txt">Add your dumbbells, bars, and bands above</div></div>`;
+    return;
+  }
+  el.innerHTML=equipmentList.map(item=>`
+    <div class="eq-card">
+      <div>
+        <div class="eq-card-name">${item.label}</div>
+        <div class="eq-card-meta">${EQ_TYPE_META[item.equipment_type].label} · ${eqSummaryText(item)}</div>
+      </div>
+      <span class="eq-card-del" onclick="deleteEquipment('${item.id}')">✕</span>
+    </div>`).join('');
+}
+
+function openEquipmentScreen(){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('equipment-screen').classList.add('active');
+  renderEquipmentFormFields();
+  renderEquipmentList();
+  if(supabaseUrl&&supabaseKey&&supabaseUserId)pullEquipmentFromSupabase();
+}
+function closeEquipmentScreen(){
+  navTo('profile');
+}
+
+async function pushEquipmentToSupabase(item){
+  try{
+    await fetch(`${supabaseUrl}/rest/v1/forge_equipment`,{
+      method:'POST',
+      headers:sbHeaders(),
+      body:JSON.stringify({
+        user_id:supabaseUserId,
+        equipment_type:item.equipment_type,
+        label:item.label,
+        weight_lb:item.weight_lb,
+        quantity:item.quantity,
+        band_resistance_level:item.band_resistance_level,
+        is_adjustable:item.is_adjustable,
+        increment_lb:item.increment_lb,
+        min_weight_lb:item.min_weight_lb,
+        max_weight_lb:item.max_weight_lb,
+        active:true,
+      }),
+    });
+  }catch(e){/* local copy is already saved; cloud sync can retry on next pull */}
+}
+async function deleteEquipmentFromSupabase(localId){
+  // Local IDs are client-generated, not the Supabase row id — since we don't track the
+  // mapping, mark inactive by matching on user+label instead of a hard delete.
+  const item=equipmentList.find(e=>e.id===localId);
+  if(!item)return;
+  try{
+    await fetch(`${supabaseUrl}/rest/v1/forge_equipment?user_id=eq.${supabaseUserId}&label=eq.${encodeURIComponent(item.label)}`,{
+      method:'DELETE',
+      headers:sbHeaders(),
+    });
+  }catch(e){}
+}
+async function pullEquipmentFromSupabase(){
+  try{
+    const res=await fetch(`${supabaseUrl}/rest/v1/forge_equipment?user_id=eq.${supabaseUserId}&active=eq.true&select=*`,{
+      headers:{'apikey':supabaseKey,'Authorization':'Bearer '+supabaseKey}
+    });
+    if(!res.ok)return;
+    const remote=await res.json();
+    // Merge: add any remote items not already present locally (matched by label+type)
+    remote.forEach(r=>{
+      const exists=equipmentList.find(e=>e.label===r.label&&e.equipment_type===r.equipment_type);
+      if(!exists){
+        equipmentList.push({
+          id:'eq_'+r.id,equipment_type:r.equipment_type,label:r.label,
+          weight_lb:r.weight_lb,quantity:r.quantity,band_resistance_level:r.band_resistance_level,
+          is_adjustable:r.is_adjustable,increment_lb:r.increment_lb,
+          min_weight_lb:r.min_weight_lb,max_weight_lb:r.max_weight_lb,active:true,
+        });
+      }
+    });
+    localStorage.setItem('forge_equipment',JSON.stringify(equipmentList));
+    renderEquipmentList();
+  }catch(e){}
+}
+
+
 // ═══════════════════════════════════════════
 // ═══════════════════════════════════════════
 // STRENGTH SCORE & TREND DASHBOARD
@@ -2681,6 +2904,7 @@ updateTimerUI();
 renderSprintDurGrids();
 updateSprintUI();
 document.getElementById('sprintAutoCycleToggle').checked=sprintAutoCycle;
+renderEquipmentFormFields();
 
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>{navigator.serviceWorker.register('/sw.js').catch(()=>{});});
