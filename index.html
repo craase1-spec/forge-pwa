@@ -146,6 +146,38 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Barlow
 .timer-btn.primary{background:var(--cyan);border-color:var(--cyan);color:#000}
 .timer-set-complete-btn{background:rgba(57,255,20,.1);border:1.5px solid var(--green);color:var(--green);font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;padding:11px 22px;border-radius:12px;cursor:pointer}
 
+/* SPRINT TIMER */
+.sprint-config-row{display:flex;gap:10px;margin-bottom:16px}
+.sprint-config-col{flex:1}
+.sprint-dur-grid{display:flex;gap:6px;flex-wrap:wrap}
+.sprint-dur-btn{flex:1;min-width:44px;background:var(--dim);border:none;color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;padding:8px 4px;border-radius:8px;cursor:pointer;text-align:center}
+.sprint-dur-btn.active{background:var(--accent);color:#fff}
+.sprint-dur-btn.rest-active{background:var(--cyan);color:#000}
+.sprint-custom-input{width:100%;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:13px;padding:8px 10px;outline:none;margin-top:6px;text-align:center}
+.sprint-custom-input:focus{border-color:var(--accent)}
+.sprint-timer-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px 14px;margin-bottom:16px;text-align:center}
+.sprint-ring{position:relative;width:200px;height:200px;margin:0 auto 12px}
+.sprint-ring svg{position:absolute;inset:0;transform:rotate(-90deg)}
+.sprint-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',cursive;font-size:60px;letter-spacing:2px}
+.sprint-phase-lbl{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:4px;text-transform:uppercase;margin-bottom:6px}
+.sprint-phase-lbl.phase-sprint{color:var(--accent)}
+.sprint-phase-lbl.phase-rest{color:var(--cyan)}
+.sprint-phase-lbl.phase-idle{color:var(--muted)}
+.sprint-set-count{font-size:12px;color:var(--muted);margin-bottom:16px;letter-spacing:1px}
+.sprint-btns{display:flex;gap:9px;justify-content:center;flex-wrap:wrap}
+.sprint-btn{border:2px solid var(--border);background:var(--surface);color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;padding:12px 20px;border-radius:12px;cursor:pointer}
+.sprint-btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.sprint-btn.finish{background:var(--gold);border-color:var(--gold);color:#000}
+.sprint-history-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:9px}
+.sprint-history-header{display:flex;justify-content:space-between;align-items:flex-start}
+.sprint-history-date{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700}
+.sprint-history-meta{font-size:11px;color:var(--muted);margin-top:2px}
+.sprint-history-del{color:var(--muted);cursor:pointer;font-size:16px}
+.sprint-set-chips{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+.sprint-set-chip{background:var(--dim);color:var(--accent);font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;padding:3px 9px;border-radius:10px}
+
+/* SAVE TEMPLATE */
+
 /* PROGRESS */
 .prog-section{margin-bottom:20px}
 .prog-section-title{font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
@@ -355,6 +387,42 @@ canvas.mini-chart{width:100%;height:100px}
     <button class="start-btn" onclick="finishWorkout()">FINISH WORKOUT</button>
   </div>
 
+  <!-- SPRINTS -->
+  <div class="screen" id="sprints-screen">
+    <div class="sec-label">Sprint Length</div>
+    <div class="sprint-dur-grid" id="sprintDurGrid"></div>
+    <input class="sprint-custom-input" id="sprintCustomInput" type="number" inputmode="numeric" placeholder="Custom seconds..." onchange="setCustomSprintDur(this.value)">
+
+    <div class="divider"></div>
+
+    <div class="sec-label">Rest Length</div>
+    <div class="sprint-dur-grid" id="restDurGrid"></div>
+    <input class="sprint-custom-input" id="restCustomInput" type="number" inputmode="numeric" placeholder="Custom seconds..." onchange="setCustomRestDur(this.value)">
+
+    <div class="divider"></div>
+
+    <div class="sprint-timer-card">
+      <div class="sprint-phase-lbl phase-idle" id="sprintPhaseLbl">Ready</div>
+      <div class="sprint-ring">
+        <svg viewBox="0 0 220 220" width="200" height="200">
+          <circle fill="none" stroke="var(--dim)" stroke-width="8" cx="110" cy="110" r="96"/>
+          <circle fill="none" stroke="var(--accent)" stroke-width="8" stroke-linecap="round"
+            cx="110" cy="110" r="96" stroke-dasharray="603" id="sprintCircle" stroke-dashoffset="0"/>
+        </svg>
+        <div class="sprint-num" id="sprintNum" style="color:var(--accent)">0:20</div>
+      </div>
+      <div class="sprint-set-count" id="sprintSetCount">0 sprints logged this session</div>
+      <div class="sprint-btns">
+        <button class="sprint-btn" onclick="resetSprintTimer()">Reset</button>
+        <button class="sprint-btn primary" id="sprintToggleBtn" onclick="toggleSprintTimer()">Start</button>
+        <button class="sprint-btn finish" id="sprintFinishBtn" onclick="finishSprintSession()" style="display:none">Finish & Save</button>
+      </div>
+    </div>
+
+    <div class="prog-section-title">Past Sessions 🏃</div>
+    <div id="sprintHistoryList"></div>
+  </div>
+
   <!-- PROGRESS -->
   <div class="screen" id="progress-screen">
     <div class="prog-section" id="forgeIndexCard"></div>
@@ -404,6 +472,7 @@ canvas.mini-chart{width:100%;height:100px}
   <nav class="bottom-nav">
     <button class="nav-btn active" id="nav-browse" onclick="navTo('browse')"><span class="nav-icon">🔍</span><span class="nav-lbl">Browse</span></button>
     <button class="nav-btn" id="nav-build" onclick="navTo('build')"><span class="nav-icon">⚡</span><span class="nav-lbl">Build</span></button>
+    <button class="nav-btn" id="nav-sprints" onclick="navTo('sprints')"><span class="nav-icon">🏃</span><span class="nav-lbl">Sprints</span></button>
     <button class="nav-btn" id="nav-progress" onclick="navTo('progress')"><span class="nav-icon">📊</span><span class="nav-lbl">Progress</span></button>
     <button class="nav-btn" id="nav-history" onclick="navTo('history')"><span class="nav-icon">📈</span><span class="nav-lbl">History</span></button>
     <button class="nav-btn" id="nav-profile" onclick="navTo('profile')"><span class="nav-icon">👤</span><span class="nav-lbl">Profile</span></button>
@@ -783,6 +852,7 @@ let supabaseUserId=localStorage.getItem('forge_sb_uid')||'';
 let syncState='idle'; // idle | syncing | synced | error
 let weeklyGoal=parseInt(localStorage.getItem('forge_weekly_goal')||'4');
 let cardioLog=JSON.parse(localStorage.getItem('forge_cardio')||'[]');
+let sprintLog=JSON.parse(localStorage.getItem('forge_sprints')||'[]');
 
 function saveState(){
   localStorage.setItem('forge_v3',JSON.stringify(history));
@@ -790,6 +860,7 @@ function saveState(){
   localStorage.setItem('forge_templates',JSON.stringify(templates));
   localStorage.setItem('forge_xp',currentXP);
   localStorage.setItem('forge_cardio',JSON.stringify(cardioLog));
+  localStorage.setItem('forge_sprints',JSON.stringify(sprintLog));
 }
 
 // ═══════════════════════════════════════════
@@ -837,6 +908,7 @@ function showScreen(name){
   if(name==='progress')renderProgress();
   if(name==='history')renderHistory();
   if(name==='profile')renderProfile();
+  if(name==='sprints'){renderSprintDurGrids();renderSprintHistory();}
 }
 
 // ═══════════════════════════════════════════
@@ -1202,6 +1274,190 @@ function updateTimerUI(){
   const m=Math.floor(timerRem/60),s=timerRem%60;
   document.getElementById('timerNum').textContent=`${m}:${s.toString().padStart(2,'0')}`;
   document.getElementById('timerCircle').style.strokeDashoffset=CIRC*(1-timerRem/timerDur);
+}
+
+// ═══════════════════════════════════════════
+// SPRINT TIMER (standalone tool)
+// ═══════════════════════════════════════════
+const SPRINT_CIRC=2*Math.PI*96;
+const SPRINT_PRESETS=[10,15,20,30,45,60];
+const REST_PRESETS=[30,45,60,90,120];
+let sprintDur=20,restDur=60;
+let sprintPhase='idle'; // idle | sprint | rest
+let sprintRem=20;
+let sprintRunning=false;
+let sprintInterval=null;
+let currentSprintSets=[]; // sets logged in the in-progress session
+
+function renderSprintDurGrids(){
+  const sEl=document.getElementById('sprintDurGrid');
+  sEl.innerHTML=SPRINT_PRESETS.map(s=>`<button class="sprint-dur-btn${s===sprintDur?' active':''}" onclick="setSprintDur(${s})">${s}s</button>`).join('');
+  const rEl=document.getElementById('restDurGrid');
+  rEl.innerHTML=REST_PRESETS.map(s=>`<button class="sprint-dur-btn${s===restDur?' rest-active':''}" onclick="setRestDur(${s})">${s<60?s+'s':(s/60)+'m'}</button>`).join('');
+}
+function setSprintDur(sec){
+  if(sprintRunning)return;
+  sprintDur=sec;
+  document.getElementById('sprintCustomInput').value='';
+  renderSprintDurGrids();
+  if(sprintPhase==='idle'){sprintRem=sprintDur;updateSprintUI();}
+}
+function setCustomSprintDur(val){
+  const n=parseInt(val);
+  if(!n||n<=0||sprintRunning)return;
+  sprintDur=n;
+  renderSprintDurGrids();
+  if(sprintPhase==='idle'){sprintRem=sprintDur;updateSprintUI();}
+}
+function setRestDur(sec){
+  if(sprintRunning)return;
+  restDur=sec;
+  document.getElementById('restCustomInput').value='';
+  renderSprintDurGrids();
+}
+function setCustomRestDur(val){
+  const n=parseInt(val);
+  if(!n||n<=0||sprintRunning)return;
+  restDur=n;
+  renderSprintDurGrids();
+}
+function toggleSprintTimer(){
+  if(sprintRunning){
+    clearInterval(sprintInterval);sprintRunning=false;
+    document.getElementById('sprintToggleBtn').textContent='Resume';
+  } else {
+    if(sprintPhase==='idle'){
+      sprintPhase='sprint';
+      sprintRem=sprintDur;
+    }
+    sprintRunning=true;
+    document.getElementById('sprintToggleBtn').textContent='Pause';
+    document.getElementById('sprintFinishBtn').style.display=currentSprintSets.length?'block':'none';
+    startSprintCountdown();
+  }
+}
+function startSprintCountdown(){
+  clearInterval(sprintInterval);
+  updateSprintUI();
+  sprintInterval=setInterval(()=>{
+    sprintRem--;
+    updateSprintUI();
+    if(sprintRem<=0){
+      if(sprintPhase==='sprint'){
+        // Sprint set complete — log it
+        currentSprintSets.push({duration:sprintDur,completedAt:Date.now()});
+        navigator.vibrate&&navigator.vibrate([250,100,250]);
+        playSprintAlarm();
+        showToast('🏃 Sprint done! Resting...');
+        sprintPhase='rest';
+        sprintRem=restDur;
+        document.getElementById('sprintFinishBtn').style.display='block';
+      } else {
+        // Rest complete — ready for next sprint
+        navigator.vibrate&&navigator.vibrate([120,80,120]);
+        playChime();
+        showToast('⚡ Rest over — next sprint!');
+        sprintPhase='sprint';
+        sprintRem=sprintDur;
+      }
+      updateSprintUI();
+    }
+  },1000);
+}
+function resetSprintTimer(){
+  clearInterval(sprintInterval);
+  sprintRunning=false;
+  sprintPhase='idle';
+  sprintRem=sprintDur;
+  currentSprintSets=[];
+  document.getElementById('sprintToggleBtn').textContent='Start';
+  document.getElementById('sprintFinishBtn').style.display='none';
+  updateSprintUI();
+}
+function updateSprintUI(){
+  const m=Math.floor(sprintRem/60),s=sprintRem%60;
+  document.getElementById('sprintNum').textContent=`${m}:${s.toString().padStart(2,'0')}`;
+  const lbl=document.getElementById('sprintPhaseLbl');
+  const num=document.getElementById('sprintNum');
+  const circle=document.getElementById('sprintCircle');
+  const totalForPhase=sprintPhase==='rest'?restDur:sprintDur;
+  circle.style.strokeDashoffset=SPRINT_CIRC*(1-sprintRem/totalForPhase);
+  if(sprintPhase==='sprint'){
+    lbl.textContent='SPRINT!';lbl.className='sprint-phase-lbl phase-sprint';
+    num.style.color='var(--accent)';circle.style.stroke='var(--accent)';
+  } else if(sprintPhase==='rest'){
+    lbl.textContent='REST';lbl.className='sprint-phase-lbl phase-rest';
+    num.style.color='var(--cyan)';circle.style.stroke='var(--cyan)';
+  } else {
+    lbl.textContent='Ready';lbl.className='sprint-phase-lbl phase-idle';
+    num.style.color='var(--accent)';circle.style.stroke='var(--accent)';
+  }
+  document.getElementById('sprintSetCount').textContent=`${currentSprintSets.length} sprint${currentSprintSets.length===1?'':'s'} logged this session`;
+}
+function finishSprintSession(){
+  if(!currentSprintSets.length){showToast('No sprints logged yet');return;}
+  clearInterval(sprintInterval);
+  sprintRunning=false;
+  const totalSprintTime=currentSprintSets.reduce((a,s)=>a+s.duration,0);
+  const record={
+    id:Date.now(),
+    timestamp:Date.now(),
+    date:new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'}),
+    sprintDuration:sprintDur,
+    restDuration:restDur,
+    sets:currentSprintSets,
+    setCount:currentSprintSets.length,
+    totalSprintTime,
+  };
+  sprintLog.unshift(record);
+  if(sprintLog.length>100)sprintLog.pop();
+  saveState();
+  if(supabaseUrl&&supabaseKey&&supabaseUserId)syncToSupabase();
+  showToast(`🏁 Session saved — ${currentSprintSets.length} sprints!`);
+  resetSprintTimer();
+  renderSprintHistory();
+}
+function deleteSprintSession(id){
+  if(!confirm('Delete this sprint session?'))return;
+  sprintLog=sprintLog.filter(s=>s.id!==id);
+  saveState();
+  renderSprintHistory();
+}
+function renderSprintHistory(){
+  const el=document.getElementById('sprintHistoryList');
+  if(!el)return;
+  if(!sprintLog.length){
+    el.innerHTML=`<div class="empty-state"><div class="empty-icon">🏃</div><div class="empty-txt">Finish a sprint session to see it here</div></div>`;
+    return;
+  }
+  el.innerHTML=sprintLog.map(s=>`
+    <div class="sprint-history-card">
+      <div class="sprint-history-header">
+        <div>
+          <div class="sprint-history-date">${s.date}</div>
+          <div class="sprint-history-meta">${s.setCount} sprint${s.setCount===1?'':'s'} · ${s.sprintDuration}s sprint / ${s.restDuration}s rest · ${s.totalSprintTime}s total sprint time</div>
+        </div>
+        <span class="sprint-history-del" onclick="deleteSprintSession(${s.id})">✕</span>
+      </div>
+      <div class="sprint-set-chips">
+        ${s.sets.map((st,i)=>`<span class="sprint-set-chip">#${i+1} ${st.duration}s</span>`).join('')}
+      </div>
+    </div>`).join('');
+}
+function playSprintAlarm(){
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    // Urgent double-beep alarm, higher pitched than the rest chime
+    [0,0.22,0.44].forEach(t=>{
+      const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);
+      o.type='square';o.frequency.value=1100;
+      const start=ctx.currentTime+t;
+      g.gain.setValueAtTime(0,start);
+      g.gain.linearRampToValueAtTime(0.4,start+0.02);
+      g.gain.exponentialRampToValueAtTime(0.001,start+0.18);
+      o.start(start);o.stop(start+0.18);
+    });
+  }catch(e){}
 }
 
 // ═══════════════════════════════════════════
@@ -1972,6 +2228,7 @@ async function syncToSupabase(force){
       templates,
       xp:currentXP,
       cardio:cardioLog,
+      sprints:sprintLog,
       updated_at:new Date().toISOString(),
     };
     const res=await fetch(`${supabaseUrl}/rest/v1/forge_data?user_id=eq.${supabaseUserId}`,{
@@ -2021,6 +2278,10 @@ async function pullFromSupabase(){
     const newCardio=(remote.cardio||[]).filter(c=>!localCardioIds.has(c.id));
     cardioLog=[...newCardio,...cardioLog];
     if(cardioLog.length>200)cardioLog=cardioLog.slice(0,200);
+    const localSprintIds=new Set(sprintLog.map(s=>s.id));
+    const newSprints=(remote.sprints||[]).filter(s=>!localSprintIds.has(s.id));
+    sprintLog=[...newSprints,...sprintLog];
+    if(sprintLog.length>100)sprintLog=sprintLog.slice(0,100);
     if((remote.xp||0)>currentXP)currentXP=remote.xp;
     saveState();
     setSyncState('synced');
@@ -2336,6 +2597,8 @@ renderExercises();
 renderSession();
 renderTemplates();
 updateTimerUI();
+renderSprintDurGrids();
+updateSprintUI();
 
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>{navigator.serviceWorker.register('/sw.js').catch(()=>{});});
