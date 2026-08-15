@@ -2122,10 +2122,51 @@ function pctChange(from,to){
   if(!from)return null;
   return Math.round(((to-from)/from)*100);
 }
-function suggestNext(latest){
+function getOwnedDumbbellWeights(){
+  const weights=new Set();
+  equipmentList.filter(e=>e.active!==false&&(e.equipment_type==='dumbbell_fixed'||e.equipment_type==='dumbbell_adjustable')).forEach(e=>{
+    if(e.equipment_type==='dumbbell_fixed'&&e.weight_lb!=null){
+      weights.add(e.weight_lb);
+    } else if(e.equipment_type==='dumbbell_adjustable'&&e.min_weight_lb!=null&&e.max_weight_lb!=null&&e.increment_lb){
+      for(let w=e.min_weight_lb;w<=e.max_weight_lb+0.001;w+=e.increment_lb){
+        weights.add(Math.round(w*100)/100);
+      }
+    }
+  });
+  return [...weights].sort((a,b)=>a-b);
+}
+function hasOwnedEquipment(type){
+  return equipmentList.some(e=>e.active!==false&&e.equipment_type===type);
+}
+function getEquipmentCategoryForExercise(name){
+  if(/\bdb\b/i.test(name)||/dumbbell/i.test(name))return 'dumbbell';
+  return null;
+}
+function suggestNext(latest,category){
   if(!latest||!latest.r)return null;
   if(latest.bodyweight)return `Aim for ${latest.r+1} reps next session`;
   if(!latest.w)return `Add weight next session`;
+
+  if(category==='dumbbell'){
+    const owned=getOwnedDumbbellWeights();
+    if(owned.length){
+      if(latest.r>=10){
+        const next=owned.find(w=>w>latest.w);
+        if(next){
+          return `Increase to ${next} lb next session`;
+        }
+        const ezSuggestion=hasOwnedEquipment('ez_bar')?' Or try switching to an EZ-bar variation for continued weight progression.':'';
+        return `You've maxed your available dumbbells at ${latest.w}lb. Try a 3-second eccentric tempo, add a pause, or push past ${latest.r+2} reps to keep progressing.${ezSuggestion}`;
+      } else if(latest.r>=6){
+        const next=owned.find(w=>w>latest.w);
+        return next?`Add reps — aim for ${latest.r+1}, working toward ${next}lb`:`Add reps — aim for ${latest.r+1} (already at your heaviest owned dumbbell)`;
+      } else {
+        return `Match ${latest.w} lb, aim for ${latest.r+1} reps`;
+      }
+    }
+    // No dumbbells logged in Equipment Inventory yet — fall back to generic suggestion below.
+  }
+
   if(latest.r>=10){
     const inc=latest.w>=135?10:5;
     return `Increase to ${latest.w+inc} lb next session`;
@@ -2154,7 +2195,8 @@ function renderExProgressStats(){
   const weekDelta=weekAgo&&currentE1RM?pctChange(estimate1RM(weekAgo.w,weekAgo.r),currentE1RM):null;
   const monthDelta=monthAgo&&currentE1RM?pctChange(estimate1RM(monthAgo.w,monthAgo.r),currentE1RM):null;
   const fmtDelta=d=>d===null?'—':`${d>0?'↑ +':d<0?'↓ ':''}${d}%`;
-  const suggestion=suggestNext(latest);
+  const category=getEquipmentCategoryForExercise(name);
+  const suggestion=suggestNext(latest,category);
 
   card.innerHTML=`
     <div class="stats-grid" style="margin-bottom:10px">
