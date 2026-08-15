@@ -449,6 +449,7 @@ canvas.mini-chart{width:100%;height:100px}
 
   <!-- PROGRESS -->
   <div class="screen" id="progress-screen">
+    <div class="prog-section" id="dailyTargetsCard"></div>
     <div class="prog-section" id="forgeIndexCard"></div>
     <div class="prog-section" id="strengthScoreCard"></div>
     <div class="prog-section" id="recoveryCard"></div>
@@ -918,6 +919,8 @@ let syncState='idle'; // idle | syncing | synced | error
 let weeklyGoal=parseInt(localStorage.getItem('forge_weekly_goal')||'4');
 let cardioLog=JSON.parse(localStorage.getItem('forge_cardio')||'[]');
 let sprintLog=JSON.parse(localStorage.getItem('forge_sprints')||'[]');
+let proteinLog=JSON.parse(localStorage.getItem('forge_protein')||'[]');
+let dailyTargets=JSON.parse(localStorage.getItem('forge_daily_targets')||'{"steps":10000,"protein":150}');
 
 function saveState(){
   localStorage.setItem('forge_v3',JSON.stringify(history));
@@ -926,6 +929,8 @@ function saveState(){
   localStorage.setItem('forge_xp',currentXP);
   localStorage.setItem('forge_cardio',JSON.stringify(cardioLog));
   localStorage.setItem('forge_sprints',JSON.stringify(sprintLog));
+  localStorage.setItem('forge_protein',JSON.stringify(proteinLog));
+  localStorage.setItem('forge_daily_targets',JSON.stringify(dailyTargets));
 }
 
 // ═══════════════════════════════════════════
@@ -1948,6 +1953,97 @@ function computeCardioSummary(offsetWeeks){
     count:entries.length,
   };
 }
+
+// ═══════════════════════════════════════════
+// DAILY TARGETS DASHBOARD
+// ═══════════════════════════════════════════
+function getTodayBounds(){
+  const start=new Date();start.setHours(0,0,0,0);
+  const end=new Date(start);end.setHours(23,59,59,999);
+  return {start,end};
+}
+function computeDailyTargetsStatus(){
+  const {start,end}=getTodayBounds();
+  const workoutDone=history.some(w=>w.timestamp>=start.getTime()&&w.timestamp<=end.getTime());
+  const stepsToday=cardioLog.filter(c=>c.timestamp>=start.getTime()&&c.timestamp<=end.getTime()).reduce((s,c)=>s+(c.steps||0),0);
+  const proteinToday=proteinLog.filter(p=>p.timestamp>=start.getTime()&&p.timestamp<=end.getTime()).reduce((s,p)=>s+(p.grams||0),0);
+  return {
+    workoutDone,
+    stepsToday,stepsTarget:dailyTargets.steps,stepsPct:Math.min(100,Math.round((stepsToday/dailyTargets.steps)*100)),
+    proteinToday,proteinTarget:dailyTargets.protein,proteinPct:Math.min(100,Math.round((proteinToday/dailyTargets.protein)*100)),
+  };
+}
+function logProteinQuick(grams){
+  proteinLog.unshift({id:Date.now(),timestamp:Date.now(),date:new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'}),grams});
+  if(proteinLog.length>300)proteinLog.pop();
+  saveState();
+  renderDailyTargets();
+  showToast(`+${grams}g protein logged`);
+  if(supabaseUrl&&supabaseKey&&supabaseUserId)syncToSupabase();
+}
+function logProteinCustom(){
+  const val=parseInt(document.getElementById('proteinCustomInput').value);
+  if(!val||val<=0){showToast('Enter a valid gram amount');return;}
+  document.getElementById('proteinCustomInput').value='';
+  logProteinQuick(val);
+}
+function adjustStepsTarget(delta){
+  dailyTargets.steps=Math.max(1000,dailyTargets.steps+delta);
+  saveState();renderDailyTargets();
+}
+function adjustProteinTarget(delta){
+  dailyTargets.protein=Math.max(10,dailyTargets.protein+delta);
+  saveState();renderDailyTargets();
+}
+function renderDailyTargets(){
+  const el=document.getElementById('dailyTargetsCard');
+  if(!el)return;
+  const s=computeDailyTargetsStatus();
+  const bar=(pct,color)=>`<div style="height:8px;background:var(--dim);border-radius:4px;overflow:hidden;margin-top:4px"><div style="height:100%;width:${Math.min(100,pct)}%;background:${color};border-radius:4px"></div></div>`;
+  el.innerHTML=`
+    <div class="prog-section-title">Daily Targets 🎯</div>
+    <div class="chart-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:18px">${s.workoutDone?'✅':'⬜'}</span>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px">Workout</div>
+        </div>
+        <div style="font-size:12px;color:${s.workoutDone?'var(--green)':'var(--muted)'}">${s.workoutDone?'Done today':'Not yet today'}</div>
+      </div>
+
+      <div style="margin-bottom:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px">Steps</div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:12px;color:var(--muted)">${s.stepsToday.toLocaleString()} / </span>
+            <button class="wg-btn" style="width:22px;height:22px;font-size:13px" onclick="adjustStepsTarget(-1000)">−</button>
+            <span style="font-size:12px;color:var(--text)">${s.stepsTarget.toLocaleString()}</span>
+            <button class="wg-btn" style="width:22px;height:22px;font-size:13px" onclick="adjustStepsTarget(1000)">+</button>
+          </div>
+        </div>
+        ${bar(s.stepsPct,'var(--cyan)')}
+      </div>
+
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px">Protein</div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:12px;color:var(--muted)">${s.proteinToday}g / </span>
+            <button class="wg-btn" style="width:22px;height:22px;font-size:13px" onclick="adjustProteinTarget(-10)">−</button>
+            <span style="font-size:12px;color:var(--text)">${s.proteinTarget}g</span>
+            <button class="wg-btn" style="width:22px;height:22px;font-size:13px" onclick="adjustProteinTarget(10)">+</button>
+          </div>
+        </div>
+        ${bar(s.proteinPct,'var(--gold)')}
+        <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+          <button class="sprint-dur-btn" style="flex:none;padding:6px 12px" onclick="logProteinQuick(20)">+20g</button>
+          <button class="sprint-dur-btn" style="flex:none;padding:6px 12px" onclick="logProteinQuick(30)">+30g</button>
+          <button class="sprint-dur-btn" style="flex:none;padding:6px 12px" onclick="logProteinQuick(40)">+40g</button>
+          <input class="sprint-custom-input" id="proteinCustomInput" type="number" inputmode="numeric" placeholder="Custom g" style="flex:1;min-width:80px;margin-top:0" onchange="logProteinCustom()">
+        </div>
+      </div>
+    </div>`;
+}
 function renderCardioSummary(){
   const el=document.getElementById('cardioCard');
   if(!el)return;
@@ -2067,6 +2163,7 @@ function renderPRFrequency(){
     </div>`;
 }
 function renderProgress(){
+  renderDailyTargets();
   renderForgeIndex();
   renderStrengthScore();
   renderRecoveryAnalysis();
@@ -2616,6 +2713,8 @@ async function syncToSupabase(force){
       xp:currentXP,
       cardio:cardioLog,
       sprints:sprintLog,
+      protein:proteinLog,
+      daily_targets:dailyTargets,
       updated_at:new Date().toISOString(),
     };
     const res=await fetch(`${supabaseUrl}/rest/v1/forge_data?user_id=eq.${supabaseUserId}`,{
@@ -2669,6 +2768,11 @@ async function pullFromSupabase(){
     const newSprints=(remote.sprints||[]).filter(s=>!localSprintIds.has(s.id));
     sprintLog=[...newSprints,...sprintLog];
     if(sprintLog.length>100)sprintLog=sprintLog.slice(0,100);
+    const localProteinIds=new Set(proteinLog.map(p=>p.id));
+    const newProtein=(remote.protein||[]).filter(p=>!localProteinIds.has(p.id));
+    proteinLog=[...newProtein,...proteinLog];
+    if(proteinLog.length>300)proteinLog=proteinLog.slice(0,300);
+    if(remote.daily_targets)dailyTargets={...dailyTargets,...remote.daily_targets};
     if((remote.xp||0)>currentXP)currentXP=remote.xp;
     saveState();
     setSyncState('synced');
