@@ -399,6 +399,21 @@ canvas.mini-chart{width:100%;height:100px}
     <div class="sprint-dur-grid" id="restDurGrid"></div>
     <input class="sprint-custom-input" id="restCustomInput" type="number" inputmode="numeric" placeholder="Custom seconds..." onchange="setCustomRestDur(this.value)">
 
+    <!-- AUTO-CYCLE TOGGLE -->
+    <div class="auto-rest-banner">
+      <div class="auto-rest-banner-left">
+        <span class="auto-rest-banner-icon">🔁</span>
+        <div>
+          <div class="auto-rest-banner-text">Auto-Cycle</div>
+          <div class="auto-rest-banner-sub">Automatically moves to the next sprint/rest phase</div>
+        </div>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" id="sprintAutoCycleToggle" onchange="toggleSprintAutoCycle(this.checked)">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+
     <div class="divider"></div>
 
     <div class="sprint-timer-card">
@@ -840,6 +855,8 @@ let templates=JSON.parse(localStorage.getItem('forge_templates')||'[]');
 let currentCat='all';
 let timerDur=60,timerRem=60,timerRunning=false,timerInterval=null;
 let lastWorkout=null;
+let lastSprintSession=null;
+let lastShareType='workout'; // 'workout' | 'sprint'
 let postPhotoData=null;
 let currentXP=parseInt(localStorage.getItem('forge_xp')||'0');
 let prevRank=getRank(currentXP);
@@ -1288,6 +1305,12 @@ let sprintRem=20;
 let sprintRunning=false;
 let sprintInterval=null;
 let currentSprintSets=[]; // sets logged in the in-progress session
+let sprintAutoCycle=localStorage.getItem('forge_sprint_autocycle')!=='0'; // default ON
+
+function toggleSprintAutoCycle(val){
+  sprintAutoCycle=val;
+  localStorage.setItem('forge_sprint_autocycle',val?'1':'0');
+}
 
 function renderSprintDurGrids(){
   const sEl=document.getElementById('sprintDurGrid');
@@ -1348,17 +1371,29 @@ function startSprintCountdown(){
         currentSprintSets.push({duration:sprintDur,completedAt:Date.now()});
         navigator.vibrate&&navigator.vibrate([250,100,250]);
         playSprintAlarm();
-        showToast('🏃 Sprint done! Resting...');
         sprintPhase='rest';
         sprintRem=restDur;
         document.getElementById('sprintFinishBtn').style.display='block';
+        if(sprintAutoCycle){
+          showToast('🏃 Sprint done! Resting...');
+        } else {
+          clearInterval(sprintInterval);sprintRunning=false;
+          document.getElementById('sprintToggleBtn').textContent='Start Rest';
+          showToast('🏃 Sprint logged! Tap Start Rest when ready.');
+        }
       } else {
         // Rest complete — ready for next sprint
         navigator.vibrate&&navigator.vibrate([120,80,120]);
         playChime();
-        showToast('⚡ Rest over — next sprint!');
         sprintPhase='sprint';
         sprintRem=sprintDur;
+        if(sprintAutoCycle){
+          showToast('⚡ Rest over — next sprint!');
+        } else {
+          clearInterval(sprintInterval);sprintRunning=false;
+          document.getElementById('sprintToggleBtn').textContent='Start Sprint';
+          showToast('⚡ Rest over! Tap Start Sprint when ready.');
+        }
       }
       updateSprintUI();
     }
@@ -1416,6 +1451,7 @@ function finishSprintSession(){
   showToast(`🏁 Session saved — ${currentSprintSets.length} sprints!`);
   resetSprintTimer();
   renderSprintHistory();
+  showSprintShareModal(record);
 }
 function deleteSprintSession(id){
   if(!confirm('Delete this sprint session?'))return;
@@ -1437,7 +1473,10 @@ function renderSprintHistory(){
           <div class="sprint-history-date">${s.date}</div>
           <div class="sprint-history-meta">${s.setCount} sprint${s.setCount===1?'':'s'} · ${s.sprintDuration}s sprint / ${s.restDuration}s rest · ${s.totalSprintTime}s total sprint time</div>
         </div>
-        <span class="sprint-history-del" onclick="deleteSprintSession(${s.id})">✕</span>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
+          <button class="hist-share-btn" onclick="shareSprintSession(${s.id})">Share 📤</button>
+          <span class="sprint-history-del" onclick="deleteSprintSession(${s.id})">✕</span>
+        </div>
       </div>
       <div class="sprint-set-chips">
         ${s.sets.map((st,i)=>`<span class="sprint-set-chip">#${i+1} ${st.duration}s</span>`).join('')}
@@ -2537,6 +2576,7 @@ function closeLevelUp(){document.getElementById('levelupOverlay').classList.remo
 // ═══════════════════════════════════════════
 function showShareModal(record){
   lastWorkout=record;
+  lastShareType='workout';
   const totalSets=record.exercises.reduce((s,e)=>s+e.sets.length,0);
   const totalReps=record.exercises.reduce((s,e)=>s+e.sets.reduce((a,b)=>a+(parseInt(b.reps)||0),0),0);
   document.getElementById('sharePreview').innerHTML=`
@@ -2552,7 +2592,31 @@ function showShareModal(record){
     ${record.newPRs&&record.newPRs.length?`<div style="margin-top:8px;font-size:12px;color:var(--gold)">🏆 New PRs: ${record.newPRs.join(', ')}</div>`:''}`;
   document.getElementById('shareModal').classList.add('show');
 }
-function closeShareModal(){document.getElementById('shareModal').classList.remove('show');navTo('history');}
+function shareSprintSession(id){
+  const record=sprintLog.find(s=>s.id===id);
+  if(!record)return;
+  showSprintShareModal(record);
+}
+function showSprintShareModal(record){
+  lastSprintSession=record;
+  lastShareType='sprint';
+  document.getElementById('sharePreview').innerHTML=`
+    <div class="sp-logo">FORGE</div>
+    <div class="sp-name">Sprint Session 🏃</div>
+    <div class="sp-date">${record.date}</div>
+    <div class="sp-stats">
+      <div><div class="sp-stat-num">${record.setCount}</div><div class="sp-stat-lbl">Sprints</div></div>
+      <div><div class="sp-stat-num">${record.sprintDuration}s</div><div class="sp-stat-lbl">Sprint Length</div></div>
+      <div><div class="sp-stat-num">${record.totalSprintTime}s</div><div class="sp-stat-lbl">Total Time</div></div>
+    </div>
+    <div class="sp-exlist">Rest between sprints: ${record.restDuration}s<br>${record.sets.map((s,i)=>`Sprint ${i+1}: ${s.duration}s`).join('<br>')}</div>`;
+  document.getElementById('shareModal').classList.add('show');
+}
+function closeShareModal(){
+  document.getElementById('shareModal').classList.remove('show');
+  if(lastShareType==='sprint')navTo('sprints');
+  else navTo('history');
+}
 function buildShareText(r){
   const totalSets=r.exercises.reduce((s,e)=>s+e.sets.length,0);
   const totalReps=r.exercises.reduce((s,e)=>s+e.sets.reduce((a,b)=>a+(parseInt(b.reps)||0),0),0);
@@ -2565,11 +2629,28 @@ function buildShareText(r){
   if(r.newPRs&&r.newPRs.length)t+=`🏆 New PRs: ${r.newPRs.join(', ')}\n\n`;
   return t+'Tracked with FORGE 🔥';
 }
+function buildSprintShareText(r){
+  let t=`🏃 FORGE Sprint Session\n${r.date}\n\n⚡ ${r.setCount} sprints × ${r.sprintDuration}s (rest ${r.restDuration}s)\n⏱ Total sprint time: ${r.totalSprintTime}s\n\n`;
+  r.sets.forEach((s,i)=>{t+=`Sprint ${i+1}: ${s.duration}s\n`;});
+  return t+'\nTracked with FORGE 🔥';
+}
 function copyWorkoutText(){
+  if(lastShareType==='sprint'){
+    if(!lastSprintSession)return;
+    navigator.clipboard?.writeText(buildSprintShareText(lastSprintSession)).then(()=>showToast('Copied!')).catch(()=>showToast('Copy failed'));
+    return;
+  }
   if(!lastWorkout)return;
   navigator.clipboard?.writeText(buildShareText(lastWorkout)).then(()=>showToast('Copied!')).catch(()=>showToast('Copy failed'));
 }
 function nativeShare(){
+  if(lastShareType==='sprint'){
+    if(!lastSprintSession)return;
+    const txt=buildSprintShareText(lastSprintSession);
+    if(navigator.share)navigator.share({title:'FORGE — Sprint Session',text:txt}).catch(()=>{});
+    else copyWorkoutText();
+    return;
+  }
   if(!lastWorkout)return;
   const txt=buildShareText(lastWorkout);
   if(navigator.share)navigator.share({title:'FORGE — '+lastWorkout.name,text:txt}).catch(()=>{});
@@ -2599,6 +2680,7 @@ renderTemplates();
 updateTimerUI();
 renderSprintDurGrids();
 updateSprintUI();
+document.getElementById('sprintAutoCycleToggle').checked=sprintAutoCycle;
 
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>{navigator.serviceWorker.register('/sw.js').catch(()=>{});});
